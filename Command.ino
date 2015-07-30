@@ -64,7 +64,7 @@ void processCommands() {
 //         Returns: nnn.n#
 //         where <=21 is cloudy
         if (command[1]=='3') {
-          delta_celsius=22.0;
+          //delta_celsius=22.0;
           dtostrf(delta_celsius,3,1,reply);
           quietReply=true;
         } else
@@ -74,7 +74,7 @@ void processCommands() {
         if (command[1]=='R') {
           int r = rainSensorReading+1; 
           if (r<=0) r=invalid;
-          r=3;
+          //r=3;
           sprintf(reply,"%d",r);
           quietReply=true;
         } else commandError=true;
