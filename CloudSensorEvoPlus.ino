@@ -40,6 +40,7 @@ int rainSensorReading = invalid;
 float ds18b20_celsius = invalid;
 float MLX90614_celsius = invalid;
 float delta_celsius = invalid;
+float avg_delta_celsius = invalid;
 
 #ifdef DEBUG_MODE_OFF
 OneWire  ds(10);  // DS18B20 on Arduino pin 10

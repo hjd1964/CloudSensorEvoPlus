@@ -68,6 +68,13 @@ void processCommands() {
           dtostrf(delta_celsius,3,1,reply);
           quietReply=true;
         } else
+//  :GS#  Get averaged delta Temperature
+//         Returns: nnn.n#
+//         where <=21 is cloudy
+        if (command[1]=='S') {
+          dtostrf(avg_delta_celsius,3,1,reply);
+          quietReply=true;
+        } else
 //  :GR#  Get rain sensor status
 //         Returns: n# 
 //         where 1# is Rain, 2# is Warn, and 3# is Dry
