@@ -94,6 +94,7 @@ void loop(void)
     ds18b20_celsius = read_DS18B20();
     MLX90614_celsius = read_MLX90614();
     delta_celsius = abs(ds18b20_celsius - MLX90614_celsius);
+    avg_delta_celsius = ((avg_delta_celsius*299.0) + delta_celsius)/300.0;
     #endif
     // End cloud sensor
 
