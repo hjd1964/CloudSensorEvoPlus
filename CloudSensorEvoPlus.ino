@@ -35,6 +35,7 @@ const int sensorMax = 1024;  // sensor maximum
 
 // last rain sensor reading
 int rainSensorReading = invalid;
+float rainSensorReading2 = invalid;
 
 // last cloud sensor reading
 float ds18b20_celsius = invalid;
@@ -106,6 +107,7 @@ void loop(void)
     // map the sensor range (four options):
     // ex: 'long int map(long int, long int, long int, long int, long int)'
     rainSensorReading = map(sensorReading, sensorMin, sensorMax, 0, 3);
+    rainSensorReading2 = (float)sensorReading/1023.0;
     // End rain sensor
   }
 
