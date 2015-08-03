@@ -81,8 +81,14 @@ void processCommands() {
         if (command[1]=='R') {
           int r = rainSensorReading+1; 
           if (r<=0) r=invalid;
-          //r=3;
           sprintf(reply,"%d",r);
+          quietReply=true;
+        } else
+//  :Gr#  Get rain sensor reading as Float
+//         Returns: n.nnn#
+//         where n ranges from 0.0 to 1.0
+        if (command[1]=='r') {
+          dtostrf(rainSensorReading2,1,3,reply);
           quietReply=true;
         } else commandError=true;
       } else commandError=true;
