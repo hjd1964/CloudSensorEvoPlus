@@ -7,4 +7,4 @@ You need the libraries (can be downloaded via the library handler in the arduino
 - Onewire
 - i2cmaster
 
-See CloudSensorEvoPlus.Doc for more detail
+See the Cloud Sensor Evo Plus.doc for more detail
