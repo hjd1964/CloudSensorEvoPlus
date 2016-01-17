@@ -1,14 +1,24 @@
 // Command processing
 
-byte bufferPtr_serial_zero=0;
 boolean serial_zero_ready=false;
+#if defined(W5100_ON)
+boolean ethernet_ready = false;
+#endif
 boolean commandError;
 boolean quietReply;
 char command[3];
 char parameter[17];
 char reply[32];
-char command_serial_zero[23];
-char parameter_serial_zero[17];
+
+byte bufferPtr_serial_zero=0;
+char command_serial_zero[25];
+char parameter_serial_zero[25];
+
+byte bufferPtr_ethernet= 0;
+char command_ethernet[25];
+char parameter_ethernet[25];
+
+enum Command {COMMAND_NONE, COMMAND_SERIAL, COMMAND_ETHERNET};
 
 // process commands
 void processCommands() {
@@ -17,12 +27,26 @@ void processCommands() {
     long i=0;
 
     if ((Serial.available() > 0) && (!serial_zero_ready)) { serial_zero_ready = buildCommand(Serial.read()); }
+#if defined(W5100_ON)
+    if ((Ethernet_available() > 0) && (!ethernet_ready)) { ethernet_ready = buildCommand_ethernet(Ethernet_read()); }
+    if (Ethernet_transmit()) return;
+#endif
 
-    byte process_command = 0;
-    if (serial_zero_ready) { strcpy(command,command_serial_zero); strcpy(parameter,parameter_serial_zero); serial_zero_ready=false; clearCommand_serial_zero(); process_command=1; } 
-    else return;
-    
+    byte process_command = COMMAND_NONE;
+    if (serial_zero_ready)     { strcpy(command,command_serial_zero); strcpy(parameter,parameter_serial_zero); serial_zero_ready=false; clearCommand_serial_zero(); process_command=COMMAND_SERIAL; }
+#if defined(W5100_ON)
+    else if (ethernet_ready)   { strcpy(command,command_ethernet);    strcpy(parameter,parameter_ethernet);    ethernet_ready=false;    clearCommand_ethernet();    process_command=COMMAND_ETHERNET; }
+#endif
+    else {
+#if defined(W5100_ON)
+      Ethernet_www();
+#endif
+      return;
+    }
+
     if (process_command) {
+
+          
 
 // Command is two chars followed by an optional parameter...
       commandError=false;
@@ -102,7 +126,7 @@ void processCommands() {
     
     if (strlen(reply)>0) {
 
-    if (process_command==1) {
+    if (process_command==COMMAND_SERIAL) {
 #ifdef CHKSUM0_ON
       // calculate the checksum
       char HEXS[3]="";
@@ -113,6 +137,20 @@ void processCommands() {
       strcat(reply,"#");
       Serial.print(reply);
     }
+
+#if defined(W5100_ON)
+      if (process_command==COMMAND_ETHERNET) {
+#ifdef CHKSUM0_ON
+        // calculate the checksum
+        char HEXS[3]="";
+        byte cks=0; for (int cksCount0=0; cksCount0<strlen(reply); cksCount0++) {  cks+=reply[cksCount0]; }
+        sprintf(HEXS,"%02X",cks);
+        strcat(reply,HEXS);
+#endif
+        if (!supress_frame) strcat(reply,"#");
+        Ethernet_print(reply);
+      }
+#endif       
 
     }
     quietReply=false;
@@ -161,3 +199,63 @@ boolean clearCommand_serial_zero() {
   command_serial_zero[bufferPtr_serial_zero]=(char)0;
   return true;
 }
+
+#if defined(W5100_ON)
+// Build up a command
+boolean buildCommand_ethernet(char c) {
+  // return if -1 is received (no data)
+  if (c == 0xFF)
+    return false;
+
+  // (chr)6 is a special status command for the LX200 protocol
+  if ((c==(char)6) && (bufferPtr_ethernet==0)) {
+//    Ethernet_print("G#");
+    #ifdef MOUNT_TYPE_ALTAZM
+    Ethernet_print("A");
+    #else
+    Ethernet_print("P");
+    #endif
+  }
+
+  // ignore spaces/lf/cr, dropping spaces is another tweek to allow compatibility with LX200 protocol
+  if ((c!=(char)32) && (c!=(char)10) && (c!=(char)13) && (c!=(char)6)) {
+    command_ethernet[bufferPtr_ethernet]=c;
+    bufferPtr_ethernet++;
+    command_ethernet[bufferPtr_ethernet]=(char)0;
+    if (bufferPtr_ethernet>22) { bufferPtr_ethernet=22; }  // limit maximum command length to avoid overflow, c2+p16+cc2+eol2+eos1=23 bytes max ranging from 0..22
+  }
+
+  if (c=='#') {
+    // validate the command frame, normal command
+    if ((bufferPtr_ethernet>1) && (command_ethernet[0]==':') && (command_ethernet[bufferPtr_ethernet-1]=='#')) { command_ethernet[bufferPtr_ethernet-1]=0; } else { clearCommand_ethernet(); return false; }
+
+#ifdef CHKSUM1_ON
+    // checksum the data, as above.
+    byte len=strlen(command_ethernet);
+    byte cks=0; for (int cksCount0=1; cksCount0<len-2; cksCount0++) { cks=cks+command_ethernet[cksCount0]; }
+    char chkSum[3]; sprintf(chkSum,"%02X",cks); if (!((chkSum[0]==command_ethernet[len-2]) && (chkSum[1]==command_ethernet[len-1]))) { clearCommand_ethernet(); Ethernet_print("00#"); return false; }
+    --len; command_ethernet[--len]=0;
+#endif
+
+    // break up the command into a two char command and the remaining parameter
+
+    // the parameter can be up to 16 chars in length
+    memmove(parameter_ethernet,(char *)&command_ethernet[3],17);
+
+    // the command is either one or two chars in length
+    command_ethernet[3]=0;  memmove(command_ethernet,(char *)&command_ethernet[1],3);
+
+    return true;
+  } else {
+    return false;
+  }
+}
+
+// clear commands
+boolean clearCommand_ethernet() {
+  bufferPtr_ethernet=0;
+  command_ethernet[bufferPtr_ethernet]=(char)0;
+  return true;
+}
+#endif
+
