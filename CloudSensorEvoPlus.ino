@@ -1,35 +1,47 @@
 /**
-* This sketch reads three sensors:
-*  DS18B20 - Connected to D10
-*  MLX90614 - Connected to SCL-A5, SDA-A4
-*  Rain sensor conected to A0
+  This sketch reads three sensors:
+   DS18B20 - Connected to D10
+   MLX90614 - Connected to SCL-A5, SDA-A4
+   Rain sensor conected to A0
 
-* It calculates the temperatures (DS18B20 and MLX90614)
-* DS18B20: http://playground.arduino.cc/Learning/OneWire
-* MLX90614: http://bildr.org/2011/02/mlx90614-arduino/
+  It calculates the temperatures (DS18B20 and MLX90614)
+  DS18B20: http://playground.arduino.cc/Learning/OneWire
+  MLX90614: http://bildr.org/2011/02/mlx90614-arduino/
 */
 
-#define DEBUG_MODE_OFF
+#define DEBUG_MODE_OFF_I2C
+#define DEBUG_MODE_OFF_ONEWIRE
 
-#ifdef DEBUG_MODE_OFF
+// default IP,Gateway,subnet are in the Network.ino file
+// if ethernet is available DHCP is used to obtain the IP address (default addresses are overridden), default=OFF
+// uncomment the next two lines to enable the ethernet web-server
+//#define W5100_ON
+//#include "Ethernet.h"
+#define ETHERNET_USE_DHCP_OFF
 
+// --------------------------------------------------------------------------------------------------------------
+#define FirmwareName "CloudSensorEvoPlus"
+#define FirmwareNumber "0.2"
+
+#ifdef DEBUG_MODE_OFF_ONEWIRE
 //get it here: http://www.pjrc.com/teensy/td_libs_OneWire.html
-#include <OneWire.h>
-
-//get it here: http://jump.to/fleury
-#include <i2cmaster.h>
-
-#include <SPI.h>
-
+#include "OneWire.h"
 #endif
+
+#ifdef DEBUG_MODE_OFF_I2C
+#include <Wire.h>
+//get it here: https://learn.adafruit.com/using-melexis-mlx90614-non-contact-sensors/wiring-and-test
+#include <Adafruit_MLX90614.h>
+Adafruit_MLX90614 mlx = Adafruit_MLX90614();
+#endif
+
+//#include <SPI.h>
 
 // lowest and highest rain sensor readings:
 const int sensorMin = 0;     // sensor minimum
 const int sensorMax = 1024;  // sensor maximum
 
 // misc
-#define FirmwareName "CloudSensorEvoPlus"
-#define FirmwareNumber "0.1"
 #define invalid -999
 #define CHKSUM0_OFF
 
@@ -41,27 +53,34 @@ float rainSensorReading2 = invalid;
 float ds18b20_celsius = invalid;
 float MLX90614_celsius = invalid;
 float delta_celsius = invalid;
-float avg_delta_celsius = 21.5;
+float avg_delta_celsius = invalid;
 
-#ifdef DEBUG_MODE_OFF
-OneWire  ds(10);  // DS18B20 on Arduino pin 10
+#ifdef DEBUG_MODE_OFF_ONEWIRE
+OneWire  ds(9);  // DS18B20 on Arduino pin 9
 #endif
 
 byte ds18b20_addr[8];
 
-void setup(void) 
+void setup(void)
 {
   Serial.begin(9600);
 
   init_DS18B20();
   init_MLX90614();
+
+#if defined(W5100_ON)
+  // get ready for Ethernet communications
+  Ethernet_Init();
+#endif
+
+  //  Serial.println("Init. Done.");
 }
 
 void init_DS18B20()
 {
-//  Serial.println("Initializing DS18B20 sensor...");
-#ifdef DEBUG_MODE_OFF
-  while( !ds.search(ds18b20_addr)) 
+  //  Serial.println("Initializing DS18B20 sensor...");
+#ifdef DEBUG_MODE_OFF_ONEWIRE
+  while ( !ds.search(ds18b20_addr))
   {
     ds.reset_search();
     delay(250);
@@ -72,49 +91,52 @@ void init_DS18B20()
 
 void init_MLX90614()
 {
-//  Serial.println("Initializing MLX90614 sensor...");
-#ifdef DEBUG_MODE_OFF
-  i2c_init(); //Initialise the i2c bus
+  //  Serial.println("Initializing MLX90614 sensor...");
+#ifdef DEBUG_MODE_OFF_I2C
+    mlx.begin();
 #endif
   //  PORTC = (1 << PORTC4) | (1 << PORTC5);//enable pullups if you use 5V sensors and don't have external pullups in the circuit
 }
 
 long last = 0;
 
-void loop(void) 
+void loop(void)
 {
-  long now=millis();
+  long now = millis();
 
   // gather data from sensors once a second
-  if ((now%1000==0) && (last!=now)) {
-    last=now; // blocks calling more than once during the same ms
+  if ((now % 1000 == 0) && (last != now)) {
+    //    Serial.print(".");
+
+    last = now; // blocks calling more than once during the same ms
 
     // Cloud sensor ------------------------------------------------------------
     // it might be a good idea to add some error checking and force the values to invalid if something is wrong
-    #ifdef DEBUG_MODE_OFF
+#ifdef DEBUG_MODE_OFF_ONEWIRE
     ds18b20_celsius = read_DS18B20();
+#endif
+#ifdef DEBUG_MODE_OFF_I2C
     MLX90614_celsius = read_MLX90614();
     delta_celsius = abs(ds18b20_celsius - MLX90614_celsius);
-    avg_delta_celsius = ((avg_delta_celsius*299.0) + delta_celsius)/300.0;
-    #endif
+#endif
     // End cloud sensor
 
     // Rain sensor -------------------------------------------------------------
     // it might be a good idea to add some error checking and force the values to invalid if something is wrong
     // read the sensor on analog A0:
     int sensorReading = analogRead(A0);
-  
+
     // map the sensor range (four options):
     // ex: 'long int map(long int, long int, long int, long int, long int)'
     rainSensorReading = map(sensorReading, sensorMin, sensorMax, 0, 3);
-    rainSensorReading2 = (float)sensorReading/1023.0;
+    rainSensorReading2 = (float)sensorReading / 1023.0;
     // End rain sensor
   }
 
   processCommands();
 }
 
-#ifdef DEBUG_MODE_OFF
+#ifdef DEBUG_MODE_OFF_ONEWIRE
 float read_DS18B20()
 {
   byte i;
@@ -124,7 +146,7 @@ float read_DS18B20()
 
   float celsius;
 
-  if (OneWire::crc8(ds18b20_addr, 7) != ds18b20_addr[7]) 
+  if (OneWire::crc8(ds18b20_addr, 7) != ds18b20_addr[7])
   {
     Serial.println("CRC is not valid!");
     return -300.0f;
@@ -132,14 +154,14 @@ float read_DS18B20()
 
 
   // the first ROM byte indicates which chip
-  switch (ds18b20_addr[0]) 
+  switch (ds18b20_addr[0])
   {
-  case 0x10: type_s = 1; break;
-  case 0x28: type_s = 0; break;
-  case 0x22: type_s = 0; break;
-  default:
-    return -301.0f;
-  } 
+    case 0x10: type_s = 1; break;
+    case 0x28: type_s = 0; break;
+    case 0x22: type_s = 0; break;
+    default:
+      return -301.0f;
+  }
 
   ds.reset();
   ds.select(ds18b20_addr);
@@ -149,26 +171,26 @@ float read_DS18B20()
   // we might do a ds.depower() here, but the reset will take care of it.
 
   present = ds.reset();
-  ds.select(ds18b20_addr);    
+  ds.select(ds18b20_addr);
   ds.write(0xBE);         // Read Scratchpad
 
   //read 9 data bytes
-  for ( i = 0; i < 9; i++) 
+  for ( i = 0; i < 9; i++)
   {
     data[i] = ds.read();
   }
 
   // Convert the data to actual temperature
   int16_t raw = (data[1] << 8) | data[0];
-  if (type_s) 
+  if (type_s)
   {
     raw = raw << 3; // 9 bit resolution default
     if (data[7] == 0x10) {
       // "count remain" gives full 12 bit resolution
       raw = (raw & 0xFFF0) + 12 - data[6];
     }
-  } 
-  else 
+  }
+  else
   {
     byte cfg = (data[4] & 0x60);
     // at lower res, the low bits are undefined, so let's zero them
@@ -181,34 +203,11 @@ float read_DS18B20()
 
   return celsius;
 }
+#endif
 
+#ifdef DEBUG_MODE_OFF_I2C
 float read_MLX90614()
 {
-  int dev = 0x5A<<1;
-  int data_low = 0;
-  int data_high = 0;
-  int pec = 0;
-
-  i2c_start_wait(dev+I2C_WRITE);
-  i2c_write(0x07);
-
-  // read
-  i2c_rep_start(dev+I2C_READ);
-  data_low = i2c_readAck(); //Read 1 byte and then send ack
-  data_high = i2c_readAck(); //Read 1 byte and then send ack
-  pec = i2c_readNak();
-  i2c_stop();
-
-  //This converts high and low bytes together and processes temperature, MSB is a error bit and is ignored for temps
-  double tempFactor = 0.02; // 0.02 degrees per LSB (measurement resolution of the MLX90614)
-  double tempData = 0x0000; // zero out the data
-  int frac; // data past the decimal point
-
-  // This masks off the error bit of the high byte, then moves it left 8 bits and adds the low byte.
-  tempData = (double)(((data_high & 0x007F) << 8) + data_low);
-  tempData = (tempData * tempFactor)-0.01;
-
-  float celcius = tempData - 273.15;
-  return celcius;
+  return mlx.readAmbientTempC();
 }
 #endif
