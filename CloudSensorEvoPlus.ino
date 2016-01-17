@@ -3,6 +3,8 @@
    DS18B20 - Connected to D9
    MLX90614 - Connected to SCL-A5, SDA-A4
    Rain sensor conected to A0
+   
+  and supports the Arduino Ethernet Shield (WIZnet W5100)
 
   It calculates the temperatures (DS18B20 and MLX90614)
   DS18B20: http://playground.arduino.cc/Learning/OneWire
