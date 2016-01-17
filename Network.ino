@@ -11,7 +11,7 @@
 // for ethernet
 int  www_xmit_buffer_send_pos=0;
 int  www_xmit_buffer_pos=0;
-char www_xmit_buffer[255] = "";
+char www_xmit_buffer[256] = "";
 
 byte mac[] = {
   0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED
