@@ -11,7 +11,7 @@
 // for ethernet
 int  www_xmit_buffer_send_pos=0;
 int  www_xmit_buffer_pos=0;
-char www_xmit_buffer[511] = "";
+char www_xmit_buffer[255] = "";
 
 byte mac[] = {
   0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED
@@ -183,7 +183,7 @@ boolean www_send() {
     c=www_xmit_buffer[www_xmit_buffer_send_pos];
     buf[l+1]=0;
     buf[l]=c;
-    if ((c==0) || (www_xmit_buffer_send_pos>511)) { buffer_empty=true; break; }
+    if ((c==0) || (www_xmit_buffer_send_pos>254)) { buffer_empty=true; break; }
     www_xmit_buffer_send_pos++;
   }
 
@@ -206,7 +206,7 @@ boolean www_send() {
 // returns false if buffer is too full to accept the data (and copies no data into buffer)
 boolean www_write(const char data[]) {
   int l=strlen(data);
-  if (www_xmit_buffer_pos+l>511) return false;
+  if (www_xmit_buffer_pos+l>254) return false;
   strcpy((char *)&www_xmit_buffer[www_xmit_buffer_pos],data);
   www_xmit_buffer_pos+=l;
   return true;
@@ -266,12 +266,12 @@ const char html_index3[] PROGMEM = "DS18B20 Temperature %s<br />";
 const char html_index4[] PROGMEM = "MLX90614 Temperature %s<br /><br />";
 const char html_index5[] PROGMEM = "Delta Temperature %s<br />";
 const char html_index6[] PROGMEM = "Averaged delta Temperature %s<br /><br />";
-const char html_index7[] PROGMEM = "Rain sensor status %s<br />";
-const char html_index8[] PROGMEM = "Rain sensor reading as float %s<br />";
+const char html_index7[] PROGMEM = "Rain sensor status: %s<br />";
+const char html_index8[] PROGMEM = "(Rain sensor reading as float %s)<br />";
 
 
 void index_html_page() {
-  char temp[256] = "";
+  char temp[128] = "";
   char temp1[80] = "";
   char temp2[20] = "";
   char temp3[20] = "";
@@ -324,9 +324,14 @@ void index_html_page() {
     strcpy_P(temp1, html_index6); sprintf(temp,temp1,temp2); 
   }
   if (html_page_step==++stp) {
+//    1# is Rain, 2# is Warn, and 3# is Dry
     int r = rainSensorReading+1; 
     if (r<=0) r=invalid;
-    sprintf(temp2,"%d",r);
+    if (r==1) strcpy(temp2,"Raining");
+    if (r==2) strcpy(temp2,"Warning");
+    if (r==3) strcpy(temp2,"Dry");
+    if (r<=0) strcpy(temp2,"Invalid");
+//    sprintf(temp2,"%d",r);
     strcpy_P(temp1, html_index7); sprintf(temp,temp1,temp2); 
   }
   if (html_page_step==++stp) {
