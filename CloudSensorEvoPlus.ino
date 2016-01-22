@@ -211,6 +211,6 @@ float read_DS18B20()
 #ifdef DEBUG_MODE_OFF_I2C
 float read_MLX90614()
 {
-  return mlx.readAmbientTempC();
+  return mlx.readObjectTempC();
 }
 #endif
