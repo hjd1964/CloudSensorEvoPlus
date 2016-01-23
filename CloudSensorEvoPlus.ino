@@ -77,6 +77,10 @@ void setup(void)
   Ethernet_Init();
 #endif
 
+#if defined(DEBUG_MODE_ON_I2C) || defined(DEBUG_MODE_ON_ONEWIRE)
+  randomSeed(analogRead(0));
+#endif
+
   //  Serial.println("Init. Done.");
 }
 
@@ -124,8 +128,8 @@ void loop(void)
 #ifdef DEBUG_MODE_OFF_ONEWIRE
     ds18b20_celsius = read_DS18B20();
 #else
-    ds18b20_celsius=20.1;  //ground
-    delta_celsius=-8.1;     //cloud
+    ds18b20_celsius=random(20,25);    //ground
+    delta_celsius=random(-10,-7);     //cloud
 #endif
 #ifdef DEBUG_MODE_OFF_I2C
     MLX90614_celsius = read_MLX90614();
@@ -133,8 +137,8 @@ void loop(void)
     delta_celsius = abs(ds18b20_celsius - MLX90614_celsius);
     avg_delta_celsius = ((avg_delta_celsius*299.0) + delta_celsius)/300.0;
 #else
-    MLX90614_celsius=11.5; //sky
-    delta_celsius=-8.1;     //cloud
+    MLX90614_celsius=random(-20,5);   //sky
+    delta_celsius = abs(ds18b20_celsius - MLX90614_celsius);
     avg_delta_celsius = ((avg_delta_celsius*299.0) + delta_celsius)/300.0;
 #endif
     
