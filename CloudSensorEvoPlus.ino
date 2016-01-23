@@ -24,6 +24,10 @@
 // Enable chart of readings
 #define HTML_CHART_ON
 // Adjust the log resolution here, must be in 2's 2,4,6,8...120,122
+// keep in mind that EEPROM is spec'd to last for 100,000 writes
+// since a given location gets written to once in 64 readings that amounts to 
+// a write of a given location once every 2 hours (64 * 120 seconds) * 100,000 which is 22 years
+// at 60 it's 11 years, at 30 5 years life.  These are minimums according to the spec.
 #define SecondsBetweenLogEntries 120
 
 // --------------------------------------------------------------------------------------------------------------
