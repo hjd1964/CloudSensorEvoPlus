@@ -125,7 +125,7 @@ void loop(void)
     ds18b20_celsius = read_DS18B20();
 #else
     ds18b20_celsius=20.1;  //ground
-    delta_celsius=8.1;     //cloud
+    delta_celsius=-8.1;     //cloud
 #endif
 #ifdef DEBUG_MODE_OFF_I2C
     MLX90614_celsius = read_MLX90614();
@@ -134,16 +134,16 @@ void loop(void)
     avg_delta_celsius = ((avg_delta_celsius*299.0) + delta_celsius)/300.0;
 #else
     MLX90614_celsius=11.5; //sky
-    delta_celsius=8.1;     //cloud
+    delta_celsius=-8.1;     //cloud
     avg_delta_celsius = ((avg_delta_celsius*299.0) + delta_celsius)/300.0;
 #endif
     
     // short-term average ambient temp
-    sa = ((sa*29.0) + ds18b20_celsius)/30.0;
+    sa = ((sa*59.0) + ds18b20_celsius)/60.0;
     // short-term sky temp
-    ss = ((ss*29.0) + MLX90614_celsius)/30.0;
+    ss = ((ss*59.0) + MLX90614_celsius)/60.0;
     // short-term average diff temp
-    sad = ((sad*29.0) + delta_celsius)/30.0;
+    sad = ((sad*59.0) + delta_celsius)/60.0;
 
     // End cloud sensor
 
@@ -167,6 +167,7 @@ void loop(void)
     if (TimeSeconds%120==0) { // 120 seconds
 #else
     if (TimeSeconds%4==0) { // 4 seconds
+      log_count=64;
 #endif
       TimeSeconds=0;    
       EEPROM_writeQuad(log_pos,(byte*)&sa);
@@ -178,8 +179,12 @@ void loop(void)
       EEPROM_writeQuad(log_pos,0);
       log_pos+=4;
       if (log_pos>=1024) log_pos-=1024;
-
+      
       log_count++; if (log_count>64) log_count==64;
+
+      sa=ds18b20_celsius;
+      ss=MLX90614_celsius;
+      sad=delta_celsius;
     }
   }
 
