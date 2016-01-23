@@ -21,7 +21,6 @@ IPAddress myDns(192,168,1, 1);
 IPAddress gateway(192, 168, 1, 1);
 IPAddress subnet(255, 255, 255, 0);
 
-
 // Network server port for command channel
 EthernetServer cmd_server(9999);
 EthernetClient cmd_client;
@@ -29,7 +28,6 @@ EthernetClient cmd_client;
 EthernetServer web_server(80);
 EthernetClient www_client;
 boolean alreadyConnected = false; // whether or not the client was connected previously
-
 
 void Ethernet_Init() {
   // initialize the ethernet device
@@ -170,16 +168,16 @@ void Ethernet_www() {
   }
 }
 
-// quickly writes up to 5 chars at a time from buffer to ethernet adapter
+// quickly writes up to 255 chars at a time from buffer to ethernet adapter
 // returns true if data is still waiting for transmit
 // returns false if data buffer is empty
 boolean www_send() {
-  char buf[11] = "";
+  char buf[257] = "";
   char c;
   
   // copy some data
   boolean buffer_empty=false;
-  for (int l=0; l<5; l++) {
+  for (int l=0; l<255; l++) {
     c=www_xmit_buffer[www_xmit_buffer_send_pos];
     buf[l+1]=0;
     buf[l]=c;
@@ -240,7 +238,7 @@ const char html_header3[] PROGMEM = "Connection: close\r\n";
 const char html_header4[] PROGMEM = "Refresh: 5\r\n\r\n";
 const char html_header4a[] PROGMEM = "\r\n";
 const char html_header5[] PROGMEM = "<!DOCTYPE HTML>\r\n<html>\r\n";
-const char html_header6[] PROGMEM = "<head>\r\n";
+const char html_header6[] PROGMEM = "<head><script src=\"http://www.chartjs.org/assets/Chart.min.js\"></script>\r\n";
 const char html_header7[] PROGMEM = "</head>\r\n";
 const char html_header8[] PROGMEM = "<body bgcolor=\"#26262A\">\r\n";
 
@@ -261,21 +259,95 @@ const char html_links2[] PROGMEM = "</a><br />";
 const char html_index1[] PROGMEM = "<div class=\"t\"><table width=\"100%\"><tr><td><b>" FirmwareName " " FirmwareNumber;
 const char html_index2[] PROGMEM = "</b></td><td align=\"right\"><b><font size=\"5\">";
 const char html_index2a[] PROGMEM = "STATUS</font></b></td></tr></table><br />";
-const char html_index2b[] PROGMEM = "</div><div class=\"b\"><br />";
-const char html_index3[] PROGMEM = "DS18B20 Temperature %s<br />";
-const char html_index4[] PROGMEM = "MLX90614 Temperature %s<br /><br />";
-const char html_index5[] PROGMEM = "Delta Temperature %s<br />";
-const char html_index6[] PROGMEM = "Averaged delta Temperature %s<br /><br />";
+const char html_index2b[] PROGMEM = "</div>\r\n<div class=\"b\"><br />\r\n";
+const char html_index3[] PROGMEM = "Ambient Temp. %s&deg;C (DS18B20, red)<br />";
+const char html_index4[] PROGMEM = "IR Temp. %s&deg;C (MLX90614, blue)<br /><br />";
+const char html_index5[] PROGMEM = "Sky Temp. %s&deg;C (delta, gray)<br />";
+const char html_index6[] PROGMEM = "Averaged delta Temperature %s&deg;C<br /><br />";
 const char html_index7[] PROGMEM = "Rain sensor status: %s<br />";
 const char html_index8[] PROGMEM = "(Rain sensor reading as float %s)<br />";
 
+const char html_t2[] PROGMEM = "<div><canvas id=\"canvas\" height=\"250px\" width=\"800px\"></canvas>";
+const char html_t4[] PROGMEM = "</div></div><script>\r\n";
+const char html_t8[] PROGMEM = "var lineChartData = {";
+const char html_t9[] PROGMEM = "labels : [";
+const char html_t10[] PROGMEM = "], datasets : [{label: \"Sky delta\",fillColor : \"rgba(255,187,151,0.2)\",";
+const char html_t14[] PROGMEM = "strokeColor : \"rgba(255,187,151,1)\",";
+const char html_t15[] PROGMEM = "pointColor : \"rgba(255,187,151,1)\",";
+const char html_t16[] PROGMEM = "pointStrokeColor : \"#fff\",";
+const char html_t17[] PROGMEM = "pointHighlightFill : \"#fff\",";
+const char html_t18[] PROGMEM = "pointHighlightStroke : \"rgba(255,187,151,1)\",";
+const char html_t19[] PROGMEM = "data : [";
+const char html_t19b[] PROGMEM = "]";
+const char html_t20[] PROGMEM = "},{label: \"Sky Temp\",fillColor : \"rgba(220,220,220,0.2)\",";
+const char html_t24[] PROGMEM = "strokeColor : \"rgba(220,220,220,1)\",";
+const char html_t25[] PROGMEM = "pointColor : \"rgba(220,220,220,1)\",";
+const char html_t28[] PROGMEM = "pointHighlightStroke : \"rgba(220,220,220,1)\",";
+const char html_t29[] PROGMEM = "data : [";
+const char html_t29b[] PROGMEM = "]";
+const char html_t30[] PROGMEM = "},{label: \"Ambient Temp\",fillColor : \"rgba(151,187,255,0.2)\",";
+const char html_t34[] PROGMEM = "strokeColor : \"rgba(151,187,255,1)\",";
+const char html_t35[] PROGMEM = "pointColor : \"rgba(151,187,255,1)\",";
+const char html_t38[] PROGMEM = "pointHighlightStroke : \"rgba(151,187,255,1)\",";
+const char html_t39[] PROGMEM = "data : [";
+const char html_t39b[] PROGMEM = "]}]}\r\n";
+const char html_t43[] PROGMEM = "window.onload = function(){";
+const char html_t44[] PROGMEM = "var ctx = document.getElementById(\"canvas\").getContext(\"2d\");";
+const char html_t45[] PROGMEM = "window.myLine = new Chart(ctx).Line(lineChartData, {";
+const char html_t46[] PROGMEM = "responsive: true, animation: false, pointDotRadius : 1});}</script>";
+
+int read_pos = 0;
+float gsa() // get ground (ambient) temp
+{
+    float f;
+
+    read_pos-=4; if (read_pos<0) read_pos+=1024;
+//    EEPROM_readQuad(read_pos,(byte*)&f); // ?
+    read_pos-=4; if (read_pos<0) read_pos+=1024;
+//    EEPROM_readQuad(read_pos,(byte*)&f); // sad
+    read_pos-=4; if (read_pos<0) read_pos+=1024;
+//    EEPROM_readQuad(read_pos,(byte*)&f); // ss
+    read_pos-=4; if (read_pos<0) read_pos+=1024;
+    EEPROM_readQuad(read_pos,(byte*)&f); // sa
+
+    return f;
+}
+float gss() // get sky temp
+{
+    float f;
+
+    read_pos-=4; if (read_pos<0) read_pos+=1024;
+//    EEPROM_readQuad(read_pos,(byte*)&f); // ?
+    read_pos-=4; if (read_pos<0) read_pos+=1024;
+//    EEPROM_readQuad(read_pos,(byte*)&f); // sad
+    read_pos-=4; if (read_pos<0) read_pos+=1024;
+    EEPROM_readQuad(read_pos,(byte*)&f); // ss
+    read_pos-=4; if (read_pos<0) read_pos+=1024;
+//    EEPROM_readQuad(read_pos,(byte*)&f); // sa
+
+    return f;
+}
+float gsad() // get average delta (cloud temp)
+{
+    float f;
+
+    read_pos-=4; if (read_pos<0) read_pos+=1024;
+//    EEPROM_readQuad(read_pos,(byte*)&f); // ?
+    read_pos-=4; if (read_pos<0) read_pos+=1024;
+    EEPROM_readQuad(read_pos,(byte*)&f); // sad
+    read_pos-=4; if (read_pos<0) read_pos+=1024;
+//    EEPROM_readQuad(read_pos,(byte*)&f); // ss
+    read_pos-=4; if (read_pos<0) read_pos+=1024;
+//    EEPROM_readQuad(read_pos,(byte*)&f); // sa
+
+    return f;
+}
 
 void index_html_page() {
   char temp[128] = "";
   char temp1[80] = "";
   char temp2[20] = "";
   char temp3[20] = "";
-  bool r=true;
   int stp=0;
   html_page_step++;
     
@@ -315,7 +387,7 @@ void index_html_page() {
     dtostrf(MLX90614_celsius,3,1,temp2);
     strcpy_P(temp1, html_index4); sprintf(temp,temp1,temp2);
   }
-  if (html_page_step==++stp) { 
+  if (html_page_step==++stp) {
     dtostrf(delta_celsius,3,1,temp2);
     strcpy_P(temp1, html_index5); sprintf(temp,temp1,temp2);
   }
@@ -323,6 +395,8 @@ void index_html_page() {
     dtostrf(avg_delta_celsius,3,1,temp2);
     strcpy_P(temp1, html_index6); sprintf(temp,temp1,temp2); 
   }
+
+#ifdef HTML_CHART_ON
   if (html_page_step==++stp) {
 //    1# is Rain, 2# is Warn, and 3# is Dry
     int r = rainSensorReading+1; 
@@ -338,14 +412,96 @@ void index_html_page() {
    dtostrf(rainSensorReading2,1,3,temp2);
    strcpy_P(temp1, html_index8); sprintf(temp,temp1,temp2);
   }
-  if (html_page_step==++stp) strcpy(temp,"</div></body></html>");
+
+  if (html_page_step==++stp) strcpy(temp,"<br /><br />\r\n");
+
+  if (html_page_step==++stp) strcpy_P(temp, html_t2);  
+  if (html_page_step==++stp) strcpy_P(temp, html_t4);  
+  if (html_page_step==++stp) strcpy_P(temp, html_t8);  
+  if (html_page_step==++stp) strcpy_P(temp, html_t9);  
+  if (html_page_step==++stp) {
+    // directly send the data from here to speed things up and to avoid buffer problems
+    read_pos=log_pos;
+    int j=0;
+    for (int i=0; i<64; i++) {
+      if (i%15==0) {
+        if (j==0) sprintf(temp,"\"Now\","); else sprintf(temp,"\"T-%d\",",j);
+        j=j+30;
+      } else {
+        sprintf(temp,"\"\",");
+      }
+      www_write(temp);
+      www_send();
+    }
+    sprintf(temp,"\"\"");
+  }
+  if (html_page_step==++stp) strcpy_P(temp, html_t10);  
+  if (html_page_step==++stp) strcpy_P(temp, html_t14);  
+  if (html_page_step==++stp) strcpy_P(temp, html_t15);  
+  if (html_page_step==++stp) strcpy_P(temp, html_t16);  
+  if (html_page_step==++stp) strcpy_P(temp, html_t17);  
+  if (html_page_step==++stp) strcpy_P(temp, html_t18);  
+  if (html_page_step==++stp) strcpy_P(temp, html_t19);  
+  if (html_page_step==++stp) {
+    // directly send the data from here to speed things up and to avoid buffer problems
+    read_pos=log_pos;
+    for (int i=0; i<log_count; i++) {
+      dtostrf(gsa(),3,1,temp2);
+      if (i<log_count) sprintf(temp,"%s,",temp2); else sprintf(temp,"%s",temp2);
+      www_write(temp);
+      if (i%20==0) www_send();
+    }
+    strcpy_P(temp, html_t19b);  
+  }
+  if (html_page_step==++stp) strcpy_P(temp, html_t20);  
+  if (html_page_step==++stp) strcpy_P(temp, html_t24);  
+  if (html_page_step==++stp) strcpy_P(temp, html_t25);  
+  if (html_page_step==++stp) strcpy_P(temp, html_t16);  
+  if (html_page_step==++stp) strcpy_P(temp, html_t17);  
+  if (html_page_step==++stp) strcpy_P(temp, html_t28);  
+  if (html_page_step==++stp) strcpy_P(temp, html_t29);  
+  if (html_page_step==++stp) {
+    // directly send the data from here to speed things up and to avoid buffer problems
+    read_pos=log_pos;
+    for (int i=0; i<log_count; i++) {
+      dtostrf(gsad(),3,1,temp2);
+      if (i<log_count) sprintf(temp,"%s,",temp2); else sprintf(temp,"%s",temp2);
+      www_write(temp);
+      if (i%20==0) www_send();
+    }
+    strcpy_P(temp, html_t29b);
+  }
+  if (html_page_step==++stp) strcpy_P(temp, html_t30);  
+  if (html_page_step==++stp) strcpy_P(temp, html_t34);  
+  if (html_page_step==++stp) strcpy_P(temp, html_t35);  
+  if (html_page_step==++stp) strcpy_P(temp, html_t16);  
+  if (html_page_step==++stp) strcpy_P(temp, html_t17);  
+  if (html_page_step==++stp) strcpy_P(temp, html_t38);  
+  if (html_page_step==++stp) strcpy_P(temp, html_t39);  
+  if (html_page_step==++stp) {
+    // directly send the data from here to speed things up and to avoid buffer problems
+    read_pos=log_pos;
+    for (int i=0; i<log_count; i++) {
+      dtostrf(gss(),3,1,temp2);
+      if (i<log_count) sprintf(temp,"%s,",temp2); else sprintf(temp,"%s",temp2);
+      www_write(temp);
+      if (i%20==0) www_send();
+    }
+    strcpy_P(temp, html_t39b);  
+  }
+  if (html_page_step==++stp) strcpy_P(temp, html_t43);  
+  if (html_page_step==++stp) strcpy_P(temp, html_t44);  
+  if (html_page_step==++stp) strcpy_P(temp, html_t45);  
+  if (html_page_step==++stp) strcpy_P(temp, html_t46);  
+#endif
+  
+  if (html_page_step==++stp) strcpy(temp,"</body></html>");
 
   // stop sending this page
   if (html_page_step==++stp) { html_page_step=0; responseStarted=false; return; }
 
   // send the data
-  r=www_write(temp);
-  if (!r) html_page_step--; // repeat this step if www_write failed
+  if (!www_write(temp)) html_page_step--; // repeat this step if www_write failed
 }
 
 #endif
