@@ -14,17 +14,21 @@
 #define DEBUG_MODE_OFF_I2C
 #define DEBUG_MODE_OFF_ONEWIRE
 
+
 // default IP,Gateway,subnet are in the Network.ino file
 // if ethernet is available DHCP is used to obtain the IP address (default addresses are overridden), default=OFF
 // uncomment the next two lines to enable the ethernet web-server
 //#define W5100_ON
 //#include "Ethernet.h"
 #define ETHERNET_USE_DHCP_OFF
+// Enable chart of readings
 #define HTML_CHART_ON
+// Adjust the log resolution here, must be in 2's 2,4,6,8...120,122
+#define SecondsBetweenLogEntries 120
 
 // --------------------------------------------------------------------------------------------------------------
 #define FirmwareName "CloudSensorEvoPlus"
-#define FirmwareNumber "0.21"
+#define FirmwareNumber "0.22"
 
 #ifdef DEBUG_MODE_OFF_ONEWIRE
 //get it here: http://www.pjrc.com/teensy/td_libs_OneWire.html
@@ -143,11 +147,11 @@ void loop(void)
 #endif
     
     // short-term average ambient temp
-    sa = ((sa*59.0) + ds18b20_celsius)/60.0;
+    sa = ((sa*((double)SecondsBetweenLogEntries/2.0-1.0)) + ds18b20_celsius)/((double)SecondsBetweenLogEntries/2.0);
     // short-term sky temp
-    ss = ((ss*59.0) + MLX90614_celsius)/60.0;
+    ss = ((ss*((double)SecondsBetweenLogEntries/2.0-1.0)) + MLX90614_celsius)/((double)SecondsBetweenLogEntries/2.0);
     // short-term average diff temp
-    sad = ((sad*59.0) + delta_celsius)/60.0;
+    sad = ((sad*((double)SecondsBetweenLogEntries/2.0-1.0)) + delta_celsius)/((double)SecondsBetweenLogEntries/2.0);
 
     // End cloud sensor
 
@@ -168,7 +172,7 @@ void loop(void)
     // Logging ------------------------------------------------------------------
     // two minutes between writing values
 #if defined(DEBUG_MODE_OFF_I2C) && defined(DEBUG_MODE_OFF_ONEWIRE)
-    if (TimeSeconds%120==0) { // 120 seconds
+    if (TimeSeconds%SecondsBetweenLogEntries==0) { // x seconds
 #else
     if (TimeSeconds%4==0) { // 4 seconds
       log_count=64;
