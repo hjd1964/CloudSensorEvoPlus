@@ -101,10 +101,10 @@ void init_MLX90614()
   //  PORTC = (1 << PORTC4) | (1 << PORTC5);//enable pullups if you use 5V sensors and don't have external pullups in the circuit
 }
 
-long TimeSeconds = 0;
+byte TimeSeconds = 0;
 long last = 0;
 int log_pos = 0;
-int log_count = 0;
+byte log_count = 0;
 
 float sa=0.0;
 float ss=0.0;
@@ -116,8 +116,8 @@ void loop(void)
 
   // gather data from sensors once every two seconds
   if ((now-last)>2000L) {
-        Serial.print(".");
-    last = now; // blocks calling more than once during the same ms
+//        Serial.print(".");
+    last = now; // time of last call
 
     // Cloud sensor ------------------------------------------------------------
     // it might be a good idea to add some error checking and force the values to invalid if something is wrong
@@ -168,14 +168,16 @@ void loop(void)
 #else
     if (TimeSeconds%4==0) { // 4 seconds
 #endif
+      TimeSeconds=0;    
       EEPROM_writeQuad(log_pos,(byte*)&sa);
-      log_pos+=4; if (log_pos>=1024) log_pos-=1024;
+      log_pos+=4;
       EEPROM_writeQuad(log_pos,(byte*)&ss);
-      log_pos+=4; if (log_pos>=1024) log_pos-=1024;
+      log_pos+=4;
       EEPROM_writeQuad(log_pos,(byte*)&sad);
-      log_pos+=4; if (log_pos>=1024) log_pos-=1024;
+      log_pos+=4;
       EEPROM_writeQuad(log_pos,0);
-      log_pos+=4; if (log_pos>=1024) log_pos-=1024;
+      log_pos+=4;
+      if (log_pos>=1024) log_pos-=1024;
 
       log_count++; if (log_count>64) log_count==64;
     }
