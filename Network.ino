@@ -301,14 +301,9 @@ float gsa() // get ground (ambient) temp
 {
     float f;
 
-    read_pos-=4; if (read_pos<0) read_pos+=1024;
-//    EEPROM_readQuad(read_pos,(byte*)&f); // ?
-    read_pos-=4; if (read_pos<0) read_pos+=1024;
-//    EEPROM_readQuad(read_pos,(byte*)&f); // sad
-    read_pos-=4; if (read_pos<0) read_pos+=1024;
-//    EEPROM_readQuad(read_pos,(byte*)&f); // ss
-    read_pos-=4; if (read_pos<0) read_pos+=1024;
+    read_pos-=16;
     EEPROM_readQuad(read_pos,(byte*)&f); // sa
+    if (read_pos<0) read_pos+=1024;
 
     return f;
 }
@@ -316,30 +311,22 @@ float gss() // get sky temp
 {
     float f;
 
-    read_pos-=4; if (read_pos<0) read_pos+=1024;
-//    EEPROM_readQuad(read_pos,(byte*)&f); // ?
-    read_pos-=4; if (read_pos<0) read_pos+=1024;
-//    EEPROM_readQuad(read_pos,(byte*)&f); // sad
-    read_pos-=4; if (read_pos<0) read_pos+=1024;
+    read_pos-=12;
     EEPROM_readQuad(read_pos,(byte*)&f); // ss
-    read_pos-=4; if (read_pos<0) read_pos+=1024;
-//    EEPROM_readQuad(read_pos,(byte*)&f); // sa
-
+    read_pos-=4;
+    if (read_pos<0) read_pos+=1024;
+    
     return f;
 }
 float gsad() // get average delta (cloud temp)
 {
     float f;
 
-    read_pos-=4; if (read_pos<0) read_pos+=1024;
-//    EEPROM_readQuad(read_pos,(byte*)&f); // ?
-    read_pos-=4; if (read_pos<0) read_pos+=1024;
+    read_pos-=8;
     EEPROM_readQuad(read_pos,(byte*)&f); // sad
-    read_pos-=4; if (read_pos<0) read_pos+=1024;
-//    EEPROM_readQuad(read_pos,(byte*)&f); // ss
-    read_pos-=4; if (read_pos<0) read_pos+=1024;
-//    EEPROM_readQuad(read_pos,(byte*)&f); // sa
-
+    read_pos-=8;
+    if (read_pos<0) read_pos+=1024;
+    
     return f;
 }
 
