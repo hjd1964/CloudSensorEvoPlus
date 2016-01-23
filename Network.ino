@@ -413,7 +413,7 @@ void index_html_page() {
     for (int i=0; i<63; i++) {
       if (i%15==0) {
         if (j==0) sprintf(temp,"\"Now\","); else sprintf(temp,"\"T-%d\",",j);
-        j=j+(SecondsBetweenLogEntries/60)*15;
+        j=j+(SecondsBetweenLogEntries*15)/60;
       } else {
         sprintf(temp,"\"\",");
       }
