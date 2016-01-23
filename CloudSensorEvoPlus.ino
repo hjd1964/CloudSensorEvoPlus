@@ -3,9 +3,9 @@
    DS18B20 - Connected to D9
    MLX90614 - Connected to SCL-A5, SDA-A4
    Rain sensor conected to A0
-   
+
    and supports the Arduino Ethernet Shield (WIZnet W5100)
-   
+
   It calculates the temperatures (DS18B20 and MLX90614)
   DS18B20: http://playground.arduino.cc/Learning/OneWire
   MLX90614: http://bildr.org/2011/02/mlx90614-arduino/
@@ -158,20 +158,24 @@ void loop(void)
     rainSensorReading2 = (float)sensorReading / 1023.0;
     // End rain sensor
 
-    TimeSeconds=TimeSeconds+2;
-    Serial.println(log_pos);
+    TimeSeconds+=2;
+//    Serial.println(log_pos);
 
     // Logging ------------------------------------------------------------------
     // two minutes between writing values
-    if (TimeSeconds%120==0) { // 120
+#if defined(DEBUG_MODE_OFF_I2C) && defined(DEBUG_MODE_OFF_ONEWIRE)
+    if (TimeSeconds%120==0) { // 120 seconds
+#else
+    if (TimeSeconds%4==0) { // 4 seconds
+#endif
       EEPROM_writeQuad(log_pos,(byte*)&sa);
-      log_pos=log_pos+4; if (log_pos>1024) log_pos-=1024;
+      log_pos+=4; if (log_pos>=1024) log_pos-=1024;
       EEPROM_writeQuad(log_pos,(byte*)&ss);
-      log_pos=log_pos+4; if (log_pos>1024) log_pos-=1024;
+      log_pos+=4; if (log_pos>=1024) log_pos-=1024;
       EEPROM_writeQuad(log_pos,(byte*)&sad);
-      log_pos=log_pos+4; if (log_pos>1024) log_pos-=1024;
+      log_pos+=4; if (log_pos>=1024) log_pos-=1024;
       EEPROM_writeQuad(log_pos,0);
-      log_pos=log_pos+4; if (log_pos>1024) log_pos-=1024;
+      log_pos+=4; if (log_pos>=1024) log_pos-=1024;
 
       log_count++; if (log_count>64) log_count==64;
     }
