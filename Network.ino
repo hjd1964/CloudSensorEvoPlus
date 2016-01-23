@@ -301,9 +301,9 @@ float gsa() // get ground (ambient) temp
 {
     float f;
 
+    if (read_pos<=0) read_pos+=1024;
     read_pos-=16;
     EEPROM_readQuad(read_pos,(byte*)&f); // sa
-    if (read_pos<0) read_pos+=1024;
 
     return f;
 }
@@ -311,10 +311,10 @@ float gss() // get sky temp
 {
     float f;
 
+    if (read_pos<=0) read_pos+=1024;
     read_pos-=12;
     EEPROM_readQuad(read_pos,(byte*)&f); // ss
     read_pos-=4;
-    if (read_pos<0) read_pos+=1024;
     
     return f;
 }
@@ -322,10 +322,10 @@ float gsad() // get average delta (cloud temp)
 {
     float f;
 
+    if (read_pos<=0) read_pos+=1024;
     read_pos-=8;
     EEPROM_readQuad(read_pos,(byte*)&f); // sad
     read_pos-=8;
-    if (read_pos<0) read_pos+=1024;
     
     return f;
 }
@@ -410,7 +410,7 @@ void index_html_page() {
     // directly send the data from here to speed things up and to avoid buffer problems
     read_pos=log_pos;
     int j=0;
-    for (int i=0; i<64; i++) {
+    for (int i=0; i<63; i++) {
       if (i%15==0) {
         if (j==0) sprintf(temp,"\"Now\","); else sprintf(temp,"\"T-%d\",",j);
         j=j+30;
@@ -434,7 +434,7 @@ void index_html_page() {
     read_pos=log_pos;
     for (int i=0; i<log_count; i++) {
       dtostrf(gsa(),3,1,temp2);
-      if (i<log_count) sprintf(temp,"%s,",temp2); else sprintf(temp,"%s",temp2);
+      if (i<log_count-1) sprintf(temp,"%s,",temp2); else sprintf(temp,"%s",temp2);
       www_write(temp);
       if (i%20==0) www_send();
     }
@@ -452,7 +452,7 @@ void index_html_page() {
     read_pos=log_pos;
     for (int i=0; i<log_count; i++) {
       dtostrf(gsad(),3,1,temp2);
-      if (i<log_count) sprintf(temp,"%s,",temp2); else sprintf(temp,"%s",temp2);
+      if (i<log_count-1) sprintf(temp,"%s,",temp2); else sprintf(temp,"%s",temp2);
       www_write(temp);
       if (i%20==0) www_send();
     }
@@ -470,7 +470,7 @@ void index_html_page() {
     read_pos=log_pos;
     for (int i=0; i<log_count; i++) {
       dtostrf(gss(),3,1,temp2);
-      if (i<log_count) sprintf(temp,"%s,",temp2); else sprintf(temp,"%s",temp2);
+      if (i<log_count-1) sprintf(temp,"%s,",temp2); else sprintf(temp,"%s",temp2);
       www_write(temp);
       if (i%20==0) www_send();
     }
