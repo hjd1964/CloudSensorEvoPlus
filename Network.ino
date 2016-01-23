@@ -268,7 +268,7 @@ const char html_index7[] PROGMEM = "Rain sensor status: %s<br />";
 const char html_index8[] PROGMEM = "(Rain sensor reading as float %s)<br />";
 
 const char html_t2[] PROGMEM = "<div><canvas id=\"canvas\" height=\"250px\" width=\"800px\"></canvas>";
-const char html_t4[] PROGMEM = "</div></div><script>\r\n";
+const char html_t4[] PROGMEM = "</div><center>Time in minutes</center></div><script>\r\n";
 const char html_t8[] PROGMEM = "var lineChartData = {";
 const char html_t9[] PROGMEM = "labels : [";
 const char html_t10[] PROGMEM = "], datasets : [{label: \"Sky delta\",fillColor : \"rgba(255,187,151,0.2)\",";
@@ -413,7 +413,7 @@ void index_html_page() {
     for (int i=0; i<63; i++) {
       if (i%15==0) {
         if (j==0) sprintf(temp,"\"Now\","); else sprintf(temp,"\"T-%d\",",j);
-        j=j+30;
+        j=j+(SecondsBetweenLogEntries/60)*15;
       } else {
         sprintf(temp,"\"\",");
       }
