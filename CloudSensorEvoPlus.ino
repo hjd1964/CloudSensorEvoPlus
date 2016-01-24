@@ -14,7 +14,6 @@
 #define DEBUG_MODE_OFF_I2C
 #define DEBUG_MODE_OFF_ONEWIRE
 
-
 // default IP,Gateway,subnet are in the Network.ino file
 // if ethernet is available DHCP is used to obtain the IP address (default addresses are overridden), default=OFF
 // uncomment the next two lines to enable the ethernet web-server
@@ -29,6 +28,9 @@
 // a write of a given location once every 2 hours (64 * 120 seconds) * 100,000 which is 22 years
 // at 60 it's 11 years, at 30 5 years life.  These are minimums according to the spec.
 #define SecondsBetweenLogEntries 120
+// these define the lower limits for the rain resistance and cloud temperature that's considered "safe"
+#define WetThreshold 0.285
+#define CloudThreshold -17.0
 
 // --------------------------------------------------------------------------------------------------------------
 #define FirmwareName "CloudSensorEvoPlus"
