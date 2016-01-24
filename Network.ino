@@ -243,13 +243,14 @@ const char html_header7[] PROGMEM = "</head>\r\n";
 const char html_header8[] PROGMEM = "<body bgcolor=\"#26262A\">\r\n";
 
 const char html_main_css1[] PROGMEM = "<STYLE>\r\n";
-const char html_main_css2[] PROGMEM = ".a { background-color: #111111; }\r\n";
+//const char html_main_css2[] PROGMEM = ".a { background-color: #111111; }\r\n";
 const char html_main_css3[] PROGMEM = ".t { padding: 15px; border: 15px solid #551111;\r\n";
 const char html_main_css4[] PROGMEM = " margin: 25px; color: #999999; background-color: #111111; }\r\n";
 const char html_main_css5[] PROGMEM = ".b { padding: 30px; border: 2px solid #551111;\r\n";
-const char html_main_css6[] PROGMEM = " margin: 30px; color: #999999; background-color: #111111; }\r\n";
-const char html_main_css7[] PROGMEM = "h1 { text-align: right; }\r\n";
-const char html_main_css8[] PROGMEM = "input { width:4em }\r\n";
+const char html_main_css6[] PROGMEM = " margin: 30px; color: #999999; background-color: #111111; }\r\n h1 { text-align: right; }\r\n";
+const char html_main_css7[] PROGMEM = " .u { background-color: #332222; color: #a07070; border:1px solid red; padding: 5px 10px; }\r\n";
+const char html_main_css7a[] PROGMEM = " .g { background-color: #223322; color: #70a070; border:1px solid green; padding: 5px 10px; }\r\n";
+const char html_main_css8[] PROGMEM = "  input { width:4em }\r\n";
 const char html_main_css9[] PROGMEM = "</STYLE>\r\n";
 
 const char html_links1[] PROGMEM = "<a href=\"/index.htm\">Status</a>";
@@ -261,40 +262,40 @@ const char html_index2[] PROGMEM = "</b></td><td align=\"right\"><b><font size=\
 const char html_index2a[] PROGMEM = "STATUS</font></b></td></tr></table><br />";
 const char html_index2b[] PROGMEM = "</div>\r\n<div class=\"b\"><br />\r\n";
 const char html_index3[] PROGMEM = "Ambient Temp. %s&deg;C (DS18B20, red)<br />";
-const char html_index4[] PROGMEM = "IR Temp. %s&deg;C (MLX90614, blue)<br /><br />";
-const char html_index5[] PROGMEM = "Sky Temp. %s&deg;C (delta, gray)<br />";
-const char html_index6[] PROGMEM = "Averaged delta Temperature %s&deg;C<br /><br />";
-const char html_index7[] PROGMEM = "Rain sensor status: %s<br />";
-const char html_index8[] PROGMEM = "(Rain sensor reading as float %s)<br />";
+const char html_index4[] PROGMEM = "Sky Temp. %s&deg;C (MLX90614, blue)";
+const char html_index5[] PROGMEM = "Delta Temp. %s&deg;C (gray)<br />";
+const char html_index6[] PROGMEM = "Avg delta Temp. %s&deg;C (%s)<br /><br />";
+const char html_index7[] PROGMEM = "Rain sensor: %s ";
+const char html_index8[] PROGMEM = "(%s)<br />";
+
+const char clouds1[] PROGMEM = "Mainly Clear";
+const char clouds2[] PROGMEM = "Few or High Clouds";
+const char clouds3[] PROGMEM = "Some Clouds";
+const char clouds4[] PROGMEM = "Mainly Cloudy";
+const char clouds5[] PROGMEM = "Very Cloudy";
+const char clouds6[] PROGMEM = "Overcast or Fog";
 
 const char html_t2[] PROGMEM = "<div><canvas id=\"canvas\" height=\"250px\" width=\"800px\"></canvas>";
 const char html_t4[] PROGMEM = "</div><center>Time in minutes</center></div><script>\r\n";
 const char html_t8[] PROGMEM = "var lineChartData = {";
 const char html_t9[] PROGMEM = "labels : [";
 const char html_t10[] PROGMEM = "], datasets : [{label: \"Sky delta\",fillColor : \"rgba(255,187,151,0.2)\",";
-const char html_t14[] PROGMEM = "strokeColor : \"rgba(255,187,151,1)\",";
-const char html_t15[] PROGMEM = "pointColor : \"rgba(255,187,151,1)\",";
-const char html_t16[] PROGMEM = "pointStrokeColor : \"#fff\",";
-const char html_t17[] PROGMEM = "pointHighlightFill : \"#fff\",";
-const char html_t18[] PROGMEM = "pointHighlightStroke : \"rgba(255,187,151,1)\",";
-const char html_t19[] PROGMEM = "data : [";
+const char html_t14[] PROGMEM = "strokeColor : \"rgba(255,187,151,1)\",pointColor : \"rgba(255,187,151,1)\",";
+const char html_t16[] PROGMEM = "pointStrokeColor : \"#fff\",pointHighlightFill : \"#fff\",";
+const char html_t18[] PROGMEM = "pointHighlightStroke : \"rgba(255,187,151,1)\",data : [";
 const char html_t19b[] PROGMEM = "]";
 const char html_t20[] PROGMEM = "},{label: \"Sky Temp\",fillColor : \"rgba(220,220,220,0.2)\",";
-const char html_t24[] PROGMEM = "strokeColor : \"rgba(220,220,220,1)\",";
-const char html_t25[] PROGMEM = "pointColor : \"rgba(220,220,220,1)\",";
-const char html_t28[] PROGMEM = "pointHighlightStroke : \"rgba(220,220,220,1)\",";
-const char html_t29[] PROGMEM = "data : [";
+const char html_t24[] PROGMEM = "strokeColor : \"rgba(220,220,220,1)\",pointColor : \"rgba(220,220,220,1)\",";
+const char html_t28[] PROGMEM = "pointHighlightStroke : \"rgba(220,220,220,1)\",data : [";
 const char html_t29b[] PROGMEM = "]";
 const char html_t30[] PROGMEM = "},{label: \"Ambient Temp\",fillColor : \"rgba(151,187,255,0.2)\",";
-const char html_t34[] PROGMEM = "strokeColor : \"rgba(151,187,255,1)\",";
-const char html_t35[] PROGMEM = "pointColor : \"rgba(151,187,255,1)\",";
-const char html_t38[] PROGMEM = "pointHighlightStroke : \"rgba(151,187,255,1)\",";
-const char html_t39[] PROGMEM = "data : [";
+const char html_t34[] PROGMEM = "strokeColor : \"rgba(151,187,255,1)\",pointColor : \"rgba(151,187,255,1)\",";
+const char html_t38[] PROGMEM = "pointHighlightStroke : \"rgba(151,187,255,1)\",data : [";
 const char html_t39b[] PROGMEM = "]}]}\r\n";
 const char html_t43[] PROGMEM = "window.onload = function(){";
 const char html_t44[] PROGMEM = "var ctx = document.getElementById(\"canvas\").getContext(\"2d\");";
-const char html_t45[] PROGMEM = "window.myLine = new Chart(ctx).Line(lineChartData, {";
-const char html_t46[] PROGMEM = "responsive: true, animation: false, pointDotRadius : 1});}</script>";
+const char html_t45[] PROGMEM = "window.myLine = new Chart(ctx).Line(lineChartData, {responsive: true, animation: false,";
+const char html_t46[] PROGMEM = " pointDotRadius : 1, scaleOverride: true, scaleStartValue: -40, scaleStepWidth:10, scaleSteps: 7 });}</script>";
 
 int read_pos = 0;
 float gsa() // get ground (ambient) temp
@@ -347,12 +348,12 @@ void index_html_page() {
   if (html_page_step==++stp) strcpy_P(temp, html_header6);
 
   if (html_page_step==++stp) strcpy_P(temp, html_main_css1);
-  if (html_page_step==++stp) strcpy_P(temp, html_main_css2);
   if (html_page_step==++stp) strcpy_P(temp, html_main_css3);
   if (html_page_step==++stp) strcpy_P(temp, html_main_css4);
   if (html_page_step==++stp) strcpy_P(temp, html_main_css5);
   if (html_page_step==++stp) strcpy_P(temp, html_main_css6);
   if (html_page_step==++stp) strcpy_P(temp, html_main_css7);
+  if (html_page_step==++stp) strcpy_P(temp, html_main_css7a);
   if (html_page_step==++stp) strcpy_P(temp, html_main_css8);
   if (html_page_step==++stp) strcpy_P(temp, html_main_css9);
   
@@ -372,15 +373,35 @@ void index_html_page() {
   }
   if (html_page_step==++stp) { 
     dtostrf(MLX90614_celsius,3,1,temp2);
-    strcpy_P(temp1, html_index4); sprintf(temp,temp1,temp2);
+    strcpy_P(temp1, html_index4); sprintf(temp,temp1,temp2,temp3);
+  }
+  if (html_page_step==++stp) { 
+    bool safe=true;
+    // check for invalid rain sensor values
+    if ((rainSensorReading2 < 0) || (avg_delta_celsius < -200)) safe=false; else
+    if ((rainSensorReading2 <= WetThreshold) || (avg_delta_celsius <= CloudThreshold)) safe=false;
+
+    strcpy(temp,"<br /><center><font class=\"");
+    www_write(temp); www_send();
+
+    if (safe) strcpy(temp,"g\">SAFE"); else strcpy(temp,"u\">UNSAFE");
+    www_write(temp); www_send();
+
+    strcpy(temp,"</font></center>");
   }
   if (html_page_step==++stp) {
     dtostrf(delta_celsius,3,1,temp2);
     strcpy_P(temp1, html_index5); sprintf(temp,temp1,temp2);
   }
-  if (html_page_step==++stp) {
+
+if (html_page_step==++stp) {
+    if (avg_delta_celsius < -28.0) strcpy_P(temp3,clouds1); else
+    if (avg_delta_celsius < -24.0) strcpy_P(temp3,clouds2); else
+    if (avg_delta_celsius < -19.0) strcpy_P(temp3,clouds3); else
+    if (avg_delta_celsius < -17.0) strcpy_P(temp3,clouds4); else
+    if (avg_delta_celsius < -14.0) strcpy_P(temp3,clouds5); else strcpy_P(temp3,clouds6);
     dtostrf(avg_delta_celsius,3,1,temp2);
-    strcpy_P(temp1, html_index6); sprintf(temp,temp1,temp2); 
+    strcpy_P(temp1, html_index6); sprintf(temp,temp1,temp2,temp3); 
   }
 
 #ifdef HTML_CHART_ON
@@ -424,11 +445,8 @@ void index_html_page() {
   }
   if (html_page_step==++stp) strcpy_P(temp, html_t10);  
   if (html_page_step==++stp) strcpy_P(temp, html_t14);  
-  if (html_page_step==++stp) strcpy_P(temp, html_t15);  
   if (html_page_step==++stp) strcpy_P(temp, html_t16);  
-  if (html_page_step==++stp) strcpy_P(temp, html_t17);  
   if (html_page_step==++stp) strcpy_P(temp, html_t18);  
-  if (html_page_step==++stp) strcpy_P(temp, html_t19);  
   if (html_page_step==++stp) {
     // directly send the data from here to speed things up and to avoid buffer problems
     read_pos=log_pos;
@@ -442,11 +460,8 @@ void index_html_page() {
   }
   if (html_page_step==++stp) strcpy_P(temp, html_t20);  
   if (html_page_step==++stp) strcpy_P(temp, html_t24);  
-  if (html_page_step==++stp) strcpy_P(temp, html_t25);  
   if (html_page_step==++stp) strcpy_P(temp, html_t16);  
-  if (html_page_step==++stp) strcpy_P(temp, html_t17);  
   if (html_page_step==++stp) strcpy_P(temp, html_t28);  
-  if (html_page_step==++stp) strcpy_P(temp, html_t29);  
   if (html_page_step==++stp) {
     // directly send the data from here to speed things up and to avoid buffer problems
     read_pos=log_pos;
@@ -460,11 +475,8 @@ void index_html_page() {
   }
   if (html_page_step==++stp) strcpy_P(temp, html_t30);  
   if (html_page_step==++stp) strcpy_P(temp, html_t34);  
-  if (html_page_step==++stp) strcpy_P(temp, html_t35);  
   if (html_page_step==++stp) strcpy_P(temp, html_t16);  
-  if (html_page_step==++stp) strcpy_P(temp, html_t17);  
   if (html_page_step==++stp) strcpy_P(temp, html_t38);  
-  if (html_page_step==++stp) strcpy_P(temp, html_t39);  
   if (html_page_step==++stp) {
     // directly send the data from here to speed things up and to avoid buffer problems
     read_pos=log_pos;
