@@ -29,8 +29,8 @@
 // at 60 it's 11 years, at 30 5 years life.  These are minimums according to the spec.
 #define SecondsBetweenLogEntries 120
 // these define the lower limits for the rain resistance and cloud temperature that's considered "safe"
-#define WetThreshold 0.285
-#define CloudThreshold -17.0
+#define WetThreshold 0.2
+#define CloudThreshold 16.0
 // this is the response time required to cover approximately 2/3 of a change in cloud temperature
 // adjust higher for less sensitivity to passing clouds/changing conditions, lower for more sensitivity
 #define AvgTimeSeconds 600.0
@@ -142,18 +142,15 @@ void loop(void)
     ds18b20_celsius = read_DS18B20();
 #else
     ds18b20_celsius=random(20,25);    //ground
-    delta_celsius=random(-10,-7);     //cloud
+    MLX90614_celsius=random(-1,10);   //sky
 #endif
 #ifdef DEBUG_MODE_OFF_I2C
     MLX90614_celsius = read_MLX90614();
-
+#else
+    MLX90614_celsius=random(-1,10);  //sky
+#endif
     delta_celsius = abs(ds18b20_celsius - MLX90614_celsius);
     avg_delta_celsius = ((avg_delta_celsius*(AvgTimeSeconds/2.0-1.0)) + delta_celsius)/(AvgTimeSeconds/2.0);
-#else
-    MLX90614_celsius=random(-20,5);   //sky
-    delta_celsius = abs(ds18b20_celsius - MLX90614_celsius);
-    avg_delta_celsius = ((avg_delta_celsius*299.0) + delta_celsius)/300.0;
-#endif
     
     // short-term average ambient temp
     sa = ((sa*((double)SecondsBetweenLogEntries/2.0-1.0)) + ds18b20_celsius)/((double)SecondsBetweenLogEntries/2.0);
