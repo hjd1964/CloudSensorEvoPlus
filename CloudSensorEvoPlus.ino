@@ -31,6 +31,9 @@
 // these define the lower limits for the rain resistance and cloud temperature that's considered "safe"
 #define WetThreshold 0.285
 #define CloudThreshold -17.0
+// this is the response time required to cover approximately 2/3 of a change in cloud temperature
+// adjust higher for less sensitivity to passing clouds/changing conditions, lower for more sensitivity
+#define AvgTimeSeconds 600.0
 
 // --------------------------------------------------------------------------------------------------------------
 #define FirmwareName "CloudSensorEvoPlus"
@@ -145,7 +148,7 @@ void loop(void)
     MLX90614_celsius = read_MLX90614();
 
     delta_celsius = abs(ds18b20_celsius - MLX90614_celsius);
-    avg_delta_celsius = ((avg_delta_celsius*299.0) + delta_celsius)/300.0;
+    avg_delta_celsius = ((avg_delta_celsius*(AvgTimeSeconds/2.0-1.0)) + delta_celsius)/(AvgTimeSeconds/2.0);
 #else
     MLX90614_celsius=random(-20,5);   //sky
     delta_celsius = abs(ds18b20_celsius - MLX90614_celsius);
