@@ -390,11 +390,11 @@ void index_html_page() {
     strcpy(temp,"</font></center>");
   }
   if (html_page_step==++stp) {
-    if (avg_delta_celsius < -28.0) strcpy_P(temp3,clouds1); else
-    if (avg_delta_celsius < -24.0) strcpy_P(temp3,clouds2); else
-    if (avg_delta_celsius < -19.0) strcpy_P(temp3,clouds3); else
-    if (avg_delta_celsius < -17.0) strcpy_P(temp3,clouds4); else
-    if (avg_delta_celsius < -14.0) strcpy_P(temp3,clouds5); else strcpy_P(temp3,clouds6);
+    if (delta_celsius > 28.0) strcpy_P(temp3,clouds1); else
+    if (delta_celsius > 24.0) strcpy_P(temp3,clouds2); else
+    if (delta_celsius > 19.0) strcpy_P(temp3,clouds3); else
+    if (delta_celsius > 17.0) strcpy_P(temp3,clouds4); else
+    if (delta_celsius > 14.0) strcpy_P(temp3,clouds5); else strcpy_P(temp3,clouds6);
     dtostrf(delta_celsius,3,1,temp2);
     strcpy_P(temp1, html_index5); sprintf(temp,temp1,temp2,temp3);
   }
