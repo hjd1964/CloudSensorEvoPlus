@@ -263,8 +263,8 @@ const char html_index2a[] PROGMEM = "STATUS</font></b></td></tr></table><br />";
 const char html_index2b[] PROGMEM = "</div>\r\n<div class=\"b\"><br />\r\n";
 const char html_index3[] PROGMEM = "Ambient Temp. %s&deg;C (DS18B20, red)<br />";
 const char html_index4[] PROGMEM = "Sky Temp. %s&deg;C (MLX90614, blue)";
-const char html_index5[] PROGMEM = "Delta Temp. %s&deg;C (gray)<br />";
-const char html_index6[] PROGMEM = "Avg delta Temp. %s&deg;C (%s)<br /><br />";
+const char html_index5[] PROGMEM = "Delta Temp. %s&deg;C (%s, gray)<br />";
+const char html_index6[] PROGMEM = "Avg delta Temp. %s&deg;C<br /><br />";
 const char html_index7[] PROGMEM = "Rain sensor: %s ";
 const char html_index8[] PROGMEM = "(%s)<br />";
 
@@ -390,18 +390,18 @@ void index_html_page() {
     strcpy(temp,"</font></center>");
   }
   if (html_page_step==++stp) {
-    dtostrf(delta_celsius,3,1,temp2);
-    strcpy_P(temp1, html_index5); sprintf(temp,temp1,temp2);
-  }
-
-if (html_page_step==++stp) {
     if (avg_delta_celsius < -28.0) strcpy_P(temp3,clouds1); else
     if (avg_delta_celsius < -24.0) strcpy_P(temp3,clouds2); else
     if (avg_delta_celsius < -19.0) strcpy_P(temp3,clouds3); else
     if (avg_delta_celsius < -17.0) strcpy_P(temp3,clouds4); else
     if (avg_delta_celsius < -14.0) strcpy_P(temp3,clouds5); else strcpy_P(temp3,clouds6);
+    dtostrf(delta_celsius,3,1,temp2);
+    strcpy_P(temp1, html_index5); sprintf(temp,temp1,temp2,temp3);
+  }
+
+if (html_page_step==++stp) {
     dtostrf(avg_delta_celsius,3,1,temp2);
-    strcpy_P(temp1, html_index6); sprintf(temp,temp1,temp2,temp3); 
+    strcpy_P(temp1, html_index6); sprintf(temp,temp1,temp2); 
   }
 
 #ifdef HTML_CHART_ON
