@@ -1,5 +1,5 @@
 # CloudSensorEvoPlus
-Cloud, rain, temperature, barometric pressure, and humidity sensing
+Cloud, rain, temperature, barometric pressure, and humidity sensing.
 This is the Cloud Sensor Evo Plus.
 
 For the Arduino Atmega 2560, Atmega 328, the Nano, Uno etc.
