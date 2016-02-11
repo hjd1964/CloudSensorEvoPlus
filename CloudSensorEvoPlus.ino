@@ -1,7 +1,7 @@
 /**
   This sketch reads three sensors:
    DS18B20 - Connected to D9
-   MLX90614 - Connected to SCL-A5, SDA-A4
+   MLX90614, and optionally BMP180 and/or HTU21D - Connected to SCL and SDA (A4 and A5 on an UNO, pins 21 and 20 on a Mega2560)
    Rain sensor conected to A0
 
    and supports the Arduino Ethernet Shield (WIZnet W5100)
@@ -11,56 +11,27 @@
   MLX90614: http://bildr.org/2011/02/mlx90614-arduino/
 */
 
-#define DEBUG_MODE_OFF_I2C
-#define DEBUG_MODE_OFF_ONEWIRE
-
-// default IP,Gateway,subnet are in the Network.ino file
-// if ethernet is available DHCP is used to obtain the IP address (default addresses are overridden), default=OFF
-// uncomment the next two lines to enable the ethernet web-server
-//#define W5100_ON
-//#include "Ethernet.h"
-#define ETHERNET_USE_DHCP_OFF
-// Enable chart of readings
-#define HTML_CHART_ON
-// Adjust the log resolution here, must be in 2's 2,4,6,8...120,122
-// keep in mind that EEPROM is spec'd to last for 100,000 writes
-// since a given location gets written to once in 64 readings that amounts to 
-// a write of a given location once every 2 hours (64 * 120 seconds) * 100,000 which is 22 years
-// at 60 it's 11 years, at 30 5 years life.  These are minimums according to the spec.
-#define SecondsBetweenLogEntries 120
-// these define the lower limits for the rain resistance and cloud temperature that's considered "safe"
-#define WetThreshold 0.2
-#define CloudThreshold 16.0
-// this is the response time required to cover approximately 2/3 of a change in cloud temperature
-// adjust higher for less sensitivity to passing clouds/changing conditions, lower for more sensitivity
-#define AvgTimeSeconds 600.0
-
 // --------------------------------------------------------------------------------------------------------------
 #define FirmwareName "CloudSensorEvoPlus"
-#define FirmwareNumber "0.22"
+#define FirmwareNumber "0.23"
 
-#ifdef DEBUG_MODE_OFF_ONEWIRE
+#include <Wire.h>
+#include "Config.h"
+#include "EEPROM.h"
+#ifdef DS18B20_ON
 //get it here: http://www.pjrc.com/teensy/td_libs_OneWire.html
 #include "OneWire.h"
 #endif
 
-#ifdef DEBUG_MODE_OFF_I2C
-#include <Wire.h>
-//get it here: https://learn.adafruit.com/using-melexis-mlx90614-non-contact-sensors/wiring-and-test
-#include <Adafruit_MLX90614.h>
-Adafruit_MLX90614 mlx = Adafruit_MLX90614();
-#endif
-
-#include "EEPROM.h"
-//#include <SPI.h>
-
-// lowest and highest rain sensor readings:
-const int sensorMin = 0;     // sensor minimum
-const int sensorMax = 1024;  // sensor maximum
-
 // misc
 #define invalid -999
 #define CHKSUM0_OFF
+boolean valid_BMP180 = false;
+boolean valid_HTU21D = false;
+
+// last humidity sensor reading
+float pressureSensorReading = invalid;
+float humiditySensorReading = invalid;
 
 // last rain sensor reading
 int rainSensorReading = invalid;
@@ -72,16 +43,43 @@ float MLX90614_celsius = invalid;
 float delta_celsius = invalid;
 float avg_delta_celsius = 0;
 
-#ifdef DEBUG_MODE_OFF_ONEWIRE
-OneWire  ds(9);  // DS18B20 on Arduino pin 9
+#ifdef MLX90614_ON
+//get it here: https://learn.adafruit.com/using-melexis-mlx90614-non-contact-sensors/wiring-and-test
+#include <Adafruit_MLX90614.h>
+Adafruit_MLX90614 mlx = Adafruit_MLX90614();
 #endif
 
+#ifdef DS18B20_ON
+OneWire  ds(9);  // DS18B20 on Arduino pin 9
+#endif
 byte ds18b20_addr[8];
+
+#ifdef BMP180_ON
+#include "SFE_BMP180.h"
+SFE_BMP180 pressure;
+#endif
+
+#ifdef HTU21D_ON
+#include "SparkFunHTU21D.h"
+HTU21D humidity;
+#endif
 
 void setup(void)
 {
+  // turn off the pullups
+#if defined(__AVR_ATmega2560__) && defined(I2C_PULLUPS_OFF)
+  digitalWrite(20,LOW);
+  digitalWrite(21,LOW);
+#endif
+#if defined(__AVR_ATmega328__) && defined(I2C_PULLUPS_OFF)
+  digitalWrite(A4,LOW);
+  digitalWrite(A5,LOW);
+#endif
+
   Serial.begin(9600);
 
+  init_BMP180();
+  init_HTU21D();
   init_DS18B20();
   init_MLX90614();
 
@@ -90,17 +88,32 @@ void setup(void)
   Ethernet_Init();
 #endif
 
-#if defined(DEBUG_MODE_ON_I2C) || defined(DEBUG_MODE_ON_ONEWIRE)
   randomSeed(analogRead(0));
-#endif
 
   //  Serial.println("Init. Done.");
+}
+
+void init_HTU21D()
+{
+  //  Serial.println("Initializing HTU21D sensor...");
+#ifdef HTU21D_ON
+  humidity.begin();
+  valid_HTU21D=true;
+#endif
+}
+
+void init_BMP180()
+{
+  //  Serial.println("Initializing BMP180 sensor...");
+#ifdef BMP180_ON
+  valid_BMP180=pressure.begin();
+#endif
 }
 
 void init_DS18B20()
 {
   //  Serial.println("Initializing DS18B20 sensor...");
-#ifdef DEBUG_MODE_OFF_ONEWIRE
+#ifdef DS18B20_ON
   while ( !ds.search(ds18b20_addr))
   {
     ds.reset_search();
@@ -112,7 +125,7 @@ void init_DS18B20()
 void init_MLX90614()
 {
   //  Serial.println("Initializing MLX90614 sensor...");
-#ifdef DEBUG_MODE_OFF_I2C
+#ifdef MLX90614_ON
     mlx.begin();
 #endif
   //  PORTC = (1 << PORTC4) | (1 << PORTC5);//enable pullups if you use 5V sensors and don't have external pullups in the circuit
@@ -126,6 +139,7 @@ byte log_count = 0;
 float sa=0.0;
 float ss=0.0;
 float sad=0.0;
+float lad=0.0;
 
 void loop(void)
 {
@@ -138,13 +152,13 @@ void loop(void)
 
     // Cloud sensor ------------------------------------------------------------
     // it might be a good idea to add some error checking and force the values to invalid if something is wrong
-#ifdef DEBUG_MODE_OFF_ONEWIRE
+#ifdef DS18B20_ON
     ds18b20_celsius = read_DS18B20();
 #else
     ds18b20_celsius=random(20,25);    //ground
     MLX90614_celsius=random(-1,10);   //sky
 #endif
-#ifdef DEBUG_MODE_OFF_I2C
+#ifdef MLX90614_ON
     MLX90614_celsius = read_MLX90614();
 #else
     MLX90614_celsius=random(-1,10);  //sky
@@ -158,7 +172,8 @@ void loop(void)
     ss = ((ss*((double)SecondsBetweenLogEntries/2.0-1.0)) + MLX90614_celsius)/((double)SecondsBetweenLogEntries/2.0);
     // short-term average diff temp
     sad = ((sad*((double)SecondsBetweenLogEntries/2.0-1.0)) + delta_celsius)/((double)SecondsBetweenLogEntries/2.0);
-
+    // long-term average diff temp
+    lad=avg_delta_celsius;
     // End cloud sensor
 
     // Rain sensor -------------------------------------------------------------
@@ -168,16 +183,26 @@ void loop(void)
 
     // map the sensor range (four options):
     // ex: 'long int map(long int, long int, long int, long int, long int)'
-    rainSensorReading = map(sensorReading, sensorMin, sensorMax, 0, 3);
+    rainSensorReading = map(sensorReading, RainSensorMin, RainSensorMax, 0, 3);
     rainSensorReading2 = (float)sensorReading / 1023.0;
     // End rain sensor
 
     TimeSeconds+=2;
 //    Serial.println(log_pos);
 
+    // Pressure ----------------------------------------------------------------
+#ifdef BMP180_ON
+  if (valid_BMP180) pressureSensorReading = read_BMP180(); else pressureSensorReading=invalid;
+#endif
+
+    // Humidity ----------------------------------------------------------------
+#ifdef HTU21D_ON
+  if (valid_HTU21D) humiditySensorReading = read_HTU21D(); else humiditySensorReading=invalid;
+#endif
+
     // Logging ------------------------------------------------------------------
     // two minutes between writing values
-#if defined(DEBUG_MODE_OFF_I2C) && defined(DEBUG_MODE_OFF_ONEWIRE)
+#if defined(MLX90614_OFF) && defined(DS18B20_OFF)
     if (TimeSeconds%SecondsBetweenLogEntries==0) { // x seconds
 #else
     if (TimeSeconds%4==0) { // 4 seconds
@@ -188,7 +213,11 @@ void loop(void)
       log_pos+=4;
       EEPROM_writeQuad(log_pos,(byte*)&ss);
       log_pos+=4;
-      EEPROM_writeQuad(log_pos,(byte*)&sad);
+ #ifdef PlotAvgDeltaTemp_ON
+     EEPROM_writeQuad(log_pos,(byte*)&lad);
+ #else
+     EEPROM_writeQuad(log_pos,(byte*)&sad);
+ #endif
       log_pos+=4;
       EEPROM_writeQuad(log_pos,0);
       log_pos+=4;
@@ -205,7 +234,7 @@ void loop(void)
   processCommands();
 }
 
-#ifdef DEBUG_MODE_OFF_ONEWIRE
+#ifdef DS18B20_ON
 float read_DS18B20()
 {
   byte i;
@@ -217,8 +246,8 @@ float read_DS18B20()
 
   if (OneWire::crc8(ds18b20_addr, 7) != ds18b20_addr[7])
   {
-    Serial.println("CRC is not valid!");
-    return -300.0f;
+//    Serial.println("CRC is not valid!");
+    return invalid;
   }
 
 
@@ -229,7 +258,8 @@ float read_DS18B20()
     case 0x28: type_s = 0; break;
     case 0x22: type_s = 0; break;
     default:
-      return -301.0f;
+      return invalid;
+//      return -301.0f;
   }
 
   ds.reset();
@@ -274,9 +304,96 @@ float read_DS18B20()
 }
 #endif
 
-#ifdef DEBUG_MODE_OFF_I2C
+#ifdef MLX90614_ON
 float read_MLX90614()
 {
   return mlx.readObjectTempC();
+}
+#endif
+
+#ifdef HTU21D_ON
+float read_HTU21D()
+{
+  float f=humidity.readHumidity();
+  if (f>=997) return invalid; else return f;
+}
+#endif
+
+#ifdef BMP180_ON
+float read_BMP180()
+{
+  double T = invalid;
+  double P = invalid;
+  int status = pressure.startTemperature();
+  if (status != 0)
+  {
+    // Wait for the measurement to complete:
+    delay(status);
+
+    // Retrieve the completed temperature measurement:
+    // Note that the measurement is stored in the variable T.
+    // Function returns 1 if successful, 0 if failure.
+
+    status = pressure.getTemperature(T);
+    if (status != 0)
+    {
+      // Print out the measurement:
+/*      Serial.print("temperature: ");
+      Serial.print(T,2);
+      Serial.print(" deg C, ");
+      Serial.print((9.0/5.0)*T+32.0,2);
+      Serial.println(" deg F");
+*/      
+      // Start a pressure measurement:
+      // The parameter is the oversampling setting, from 0 to 3 (highest res, longest wait).
+      // If request is successful, the number of ms to wait is returned.
+      // If request is unsuccessful, 0 is returned.
+
+      status = pressure.startPressure(3);
+      if (status != 0)
+      {
+        // Wait for the measurement to complete:
+        delay(status);
+
+        // Retrieve the completed pressure measurement:
+        // Note that the measurement is stored in the variable P.
+        // Note also that the function requires the previous temperature measurement (T).
+        // (If temperature is stable, you can do one temperature measurement for a number of pressure measurements.)
+        // Function returns 1 if successful, 0 if failure.
+
+        status = pressure.getPressure(P,T);
+        if (status != 0)
+        {
+  /*        
+          // Print out the measurement:
+          Serial.print("absolute pressure: ");
+          Serial.print(P,2);
+          Serial.print(" mb, ");
+          Serial.print(P*0.0295333727,2);
+          Serial.println(" inHg");
+   */
+          // The pressure sensor returns abolute pressure, which varies with altitude.
+          // To remove the effects of altitude, use the sealevel function and your current altitude.
+          // This number is commonly used in weather reports.
+          // Parameters: P = absolute pressure in mb, ALTITUDE = current altitude in m.
+          // Result: p0 = sea-level compensated pressure in mb
+
+          double p0 = pressure.sealevel(P,ALTITUDE); // we're at 1655 meters (Boulder, CO)
+          return p0;
+  /*        
+          Serial.print("relative (sea-level) pressure: ");
+          Serial.print(p0,2);
+          Serial.print(" mb, ");
+          Serial.print(p0*0.0295333727,2);
+          Serial.println(" inHg");
+   */
+        }
+        else return invalid;
+      }
+      else return invalid;
+    }
+    else return invalid;
+  }
+  else return invalid;
 }
 #endif
