@@ -13,14 +13,6 @@ int  www_xmit_buffer_send_pos=0;
 int  www_xmit_buffer_pos=0;
 char www_xmit_buffer[256] = "";
 
-byte mac[] = {
-  0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED
-};
-IPAddress ip(192, 168, 1, 56);
-IPAddress myDns(192,168,1, 1);
-IPAddress gateway(192, 168, 1, 1);
-IPAddress subnet(255, 255, 255, 0);
-
 // Network server port for command channel
 EthernetServer cmd_server(9999);
 EthernetClient cmd_client;
@@ -49,7 +41,6 @@ void Ethernet_send(const char data[]) {
   cmd_client.flush();
    
   cmd_client.print(data);
-//  do {} while (Serial_transmit());
 }
 
 void Ethernet_print(const char data[]) {
@@ -238,7 +229,9 @@ const char html_header3[] PROGMEM = "Connection: close\r\n";
 const char html_header4[] PROGMEM = "Refresh: 5\r\n\r\n";
 const char html_header4a[] PROGMEM = "\r\n";
 const char html_header5[] PROGMEM = "<!DOCTYPE HTML>\r\n<html>\r\n";
+//const char html_header6[] PROGMEM = "<head><script src=\"https://cdnjs.com/libraries/chart.js\"></script>\r\n";
 const char html_header6[] PROGMEM = "<head><script src=\"http://www.chartjs.org/assets/Chart.min.js\"></script>\r\n";
+//const char html_header6[] PROGMEM = "<head>\r\n";
 const char html_header7[] PROGMEM = "</head>\r\n";
 const char html_header8[] PROGMEM = "<body bgcolor=\"#26262A\">\r\n";
 
@@ -261,12 +254,23 @@ const char html_index1[] PROGMEM = "<div class=\"t\"><table width=\"100%\"><tr><
 const char html_index2[] PROGMEM = "</b></td><td align=\"right\"><b><font size=\"5\">";
 const char html_index2a[] PROGMEM = "STATUS</font></b></td></tr></table><br />";
 const char html_index2b[] PROGMEM = "</div>\r\n<div class=\"b\"><br />\r\n";
-const char html_index3[] PROGMEM = "Ambient Temp. %s&deg;C (DS18B20, red)<br />";
-const char html_index4[] PROGMEM = "Sky Temp. %s&deg;C (MLX90614, blue)";
-const char html_index5[] PROGMEM = "Delta Temp. %s&deg;C (%s, gray)<br />";
-const char html_index6[] PROGMEM = "Avg delta Temp. %s&deg;C<br /><br />";
-const char html_index7[] PROGMEM = "Rain sensor: %s ";
-const char html_index8[] PROGMEM = "(%s)<br />";
+const char html_index3[] PROGMEM = "Ambient Temp. %s&deg;C (DS18B20, Red)<br />";
+const char html_index4[] PROGMEM = "Sky Temp. %s&deg;C (MLX90614, Blue)";
+#ifdef PlotAvgDeltaTemp_ON
+const char html_index5[] PROGMEM = "Delta Temp. %s&deg;C (%s)<br />";
+const char html_index6[] PROGMEM = "Avg. delta Temp. %s&deg;C (Gray)<br /><br />";
+#else
+const char html_index5[] PROGMEM = "Delta Temp. %s&deg;C (%s, Gray)<br />";
+const char html_index6[] PROGMEM = "Avg. delta Temp. %s&deg;C<br /><br />";
+#endif
+const char html_index7[] PROGMEM = "Rain status: %s ";
+const char html_index8[] PROGMEM = "(%s)<br /><br />";
+#ifdef BMP180_ON
+const char html_index9[] PROGMEM = "Humidity: %s%%, ";
+#else
+const char html_index9[] PROGMEM = "Humidity: %s%%<br />";
+#endif
+const char html_index10[] PROGMEM = "Pressure: %s mbar<br />";
 
 const char clouds1[] PROGMEM = "Mainly Clear";
 const char clouds2[] PROGMEM = "Few or High Clouds";
@@ -390,25 +394,24 @@ void index_html_page() {
     strcpy(temp,"</font></center>");
   }
   if (html_page_step==++stp) {
-    if (delta_celsius > 28.0) strcpy_P(temp3,clouds1); else
-    if (delta_celsius > 24.0) strcpy_P(temp3,clouds2); else
-    if (delta_celsius > 19.0) strcpy_P(temp3,clouds3); else
-    if (delta_celsius > 17.0) strcpy_P(temp3,clouds4); else
-    if (delta_celsius > 14.0) strcpy_P(temp3,clouds5); else strcpy_P(temp3,clouds6);
+    if (delta_celsius > SkyClear) strcpy_P(temp3,clouds1); else
+    if (delta_celsius > SkyVSCldy) strcpy_P(temp3,clouds2); else
+    if (delta_celsius > SkySCldy) strcpy_P(temp3,clouds3); else
+    if (delta_celsius > SkyCldy) strcpy_P(temp3,clouds4); else
+    if (delta_celsius > SkyVCldy) strcpy_P(temp3,clouds5); else strcpy_P(temp3,clouds6);
+
     dtostrf(delta_celsius,3,1,temp2);
     strcpy_P(temp1, html_index5); sprintf(temp,temp1,temp2,temp3);
   }
 
 if (html_page_step==++stp) {
-    dtostrf(avg_delta_celsius,3,1,temp2);
+    if (avg_delta_celsius==invalid) strcpy(temp2,"Invalid"); else dtostrf(avg_delta_celsius,3,1,temp2);
     strcpy_P(temp1, html_index6); sprintf(temp,temp1,temp2); 
   }
 
-#ifdef HTML_CHART_ON
   if (html_page_step==++stp) {
 //    1# is Rain, 2# is Warn, and 3# is Dry
     int r = rainSensorReading+1; 
-    if (r<=0) r=invalid;
     if (r==1) strcpy(temp2,"Raining");
     if (r==2) strcpy(temp2,"Warning");
     if (r==3) strcpy(temp2,"Dry");
@@ -417,11 +420,25 @@ if (html_page_step==++stp) {
     strcpy_P(temp1, html_index7); sprintf(temp,temp1,temp2); 
   }
   if (html_page_step==++stp) {
-   dtostrf(rainSensorReading2,1,3,temp2);
-   strcpy_P(temp1, html_index8); sprintf(temp,temp1,temp2);
+    dtostrf(rainSensorReading2,1,3,temp2);
+    strcpy_P(temp1, html_index8); sprintf(temp,temp1,temp2);
   }
+#ifdef HTU21D_ON
+  if (html_page_step==++stp) {
+    if (humiditySensorReading==invalid) strcpy(temp2,"Invalid"); else dtostrf(humiditySensorReading,4,2,temp2);
+    strcpy_P(temp1, html_index9); sprintf(temp,temp1,temp2); 
+  }
+#endif
+#ifdef BMP180_ON
+  if (html_page_step==++stp) {
+    if (pressureSensorReading==invalid) strcpy(temp2,"Invalid"); else dtostrf(pressureSensorReading,4,2,temp2);
+    strcpy_P(temp1, html_index10); sprintf(temp,temp1,temp2); 
+  }
+#endif
 
   if (html_page_step==++stp) strcpy(temp,"<br /><br />\r\n");
+
+#ifdef HTML_CHART_ON
 
   if (html_page_step==++stp) strcpy_P(temp, html_t2);  
   if (html_page_step==++stp) strcpy_P(temp, html_t4);  
