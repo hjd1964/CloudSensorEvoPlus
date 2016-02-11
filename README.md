@@ -7,6 +7,6 @@ You need the libraries (can be downloaded via the library handler in the arduino
 - OneWire
 - Adafruit_MLX90614
 
-Libraries for the BMP180 and HTU21D are built-in.
+Libraries for the BMP180 and HTU21D are built-in.  The Mega2560 is required for full functionality.
 
 See the "Cloud Sensor Evo Plus.doc" for more detail
