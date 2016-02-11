@@ -4,11 +4,11 @@
 // SENSORS
 
 // the DS18B20 temperature sensor is on Digital 9 and is accessed using OneWire.h
-#define DS18B20_ON     // simulated if _OFF
+#define DS18B20_ON    // simulated if _OFF
 // the MLX90614, HTU21D, and BMP180 I2C sensors are at the default I2C pins SDA SCL
-#define MLX90614_ON    // simulated if _OFF
-#define HTU21D_ON      // disabled if _OFF
-#define BMP180_ON      // disabled if _OFF
+#define MLX90614_ON   // simulated if _OFF
+#define HTU21D_OFF    // disabled if _OFF
+#define BMP180_OFF    // disabled if _OFF
 
 // Using this option the built-in pullup resistors should be turned off immediately *after* the library connects,
 // if you don't like this situation use a level-converter.  This hasn't been tested and is coded to work only on
@@ -54,7 +54,7 @@
 // NETWORK
 
 // turn the ethernet web-server and command channel _ON, default=_OFF
-#define W5100_ON
+#define W5100_OFF
 // if DHCP is used to obtain the IP addresses, the addresses are overridden, default=_OFF
 #define ETHERNET_USE_DHCP_OFF
 // Enable chart of readings
