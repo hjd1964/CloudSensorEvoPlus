@@ -114,6 +114,20 @@ void processCommands() {
         if (command[1]=='r') {
           dtostrf(rainSensorReading2,1,3,reply);
           quietReply=true;
+        } else
+//  :Gh#  Get relative humidity reading as Float
+//         Returns: n.n#
+//         where n ranges from 0.0 to 100.0
+        if (command[1]=='h') {
+          dtostrf(humiditySensorReading,1,1,reply);
+          quietReply=true;
+        } else
+//  :Gb#  Get barometric reading as Float
+//         Returns: n.nnn#
+//         where n ranges from about 980.0 to 1050.0 (mbar, sea-level compensated)
+        if (command[1]=='b') {
+          dtostrf(pressureSensorReading,1,1,reply);
+          quietReply=true;
         } else commandError=true;
       } else commandError=true;
     }
