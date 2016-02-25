@@ -545,7 +545,7 @@ if (html_page_step==++stp) {
 
 #ifdef SD_CARD_ON
 const char html_header1j[] PROGMEM = "HTTP/1.1 200 OK\r\n";
-const char html_header2j[] PROGMEM = "Date: Thu, 25 Feb 2016 17:00:49 GMT\r\n";
+//const char html_header2j[] PROGMEM = "Date: Thu, 25 Feb 2016 17:00:49 GMT\r\n";
 const char html_header3j[] PROGMEM = "Etag: \"3457807a63ac7bdabf8999b98245d0fe\"\r\n";
 const char html_header4j[] PROGMEM = "Last-Modified: Mon, 13 Apr 2015 15:35:56 GMT\r\n";
 const char html_header5j[] PROGMEM = "Content-Type: Content-Type: application/javascript\r\n";
@@ -579,7 +579,7 @@ void chart_js_html_page() {
     } else {
       // send the header
       strcpy_P(temp, html_header1j); www_client.print(temp);
-      strcpy_P(temp, html_header2j); www_client.print(temp);
+//    strcpy_P(temp, html_header2j); www_client.print(temp);
       strcpy_P(temp, html_header3j); www_client.print(temp);
       strcpy_P(temp, html_header4j); www_client.print(temp);
       strcpy_P(temp, html_header5j); www_client.print(temp);
