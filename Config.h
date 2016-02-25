@@ -41,7 +41,7 @@
 
 // Adjust the log resolution here, must be in 2's 2,4,6,8...120,122
 // keep in mind that EEPROM is spec'd to last for 100,000 writes
-// since a given location gets written to once in 64 readings that amounts to 
+// since a given location gets written to once in 64 readings that amounts to
 // a write of a given location once every 2 hours (64 * 120 seconds) * 100,000 which is 22 years
 // at 60 it's 11 years, at 30 5 years life.  These are minimums according to the spec.
 #define SecondsBetweenLogEntries 30
@@ -59,13 +59,18 @@
 #define ETHERNET_USE_DHCP_OFF
 // Enable chart of readings
 #define HTML_CHART_ON
+// Enable serving "Chart.js" from an SD Card, default=_OFF
+// I use Chart.min.js renamed to Chart.js in the root directory of the sd card.  This was
+// downloaded from https://github.com/nnnick/Chart.js (remember, you can browse the GitHub repository at any date, 
+// so if something is broken by a new release go back to the start of 2016 and get the version that's known to work)
+#define SD_CARD_OFF
 
 // default IP, Gateway, and subnet
 #ifdef W5100_ON
 #include "Ethernet.h"
 byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
 IPAddress ip(192, 168, 1, 56);
-IPAddress myDns(192,168,1, 1);
+IPAddress myDns(192, 168, 1, 1);
 IPAddress gateway(192, 168, 1, 1);
 IPAddress subnet(255, 255, 255, 0);
 #endif
