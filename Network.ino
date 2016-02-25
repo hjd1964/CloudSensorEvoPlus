@@ -31,7 +31,7 @@ void Ethernet_Init() {
 
   cmd_server.begin();
   web_server.begin();
-  www_client = web_server.available(); // initialise www_client
+//  www_client = web_server.available(); // initialise www_client
 }
 
 void Ethernet_send(const char data[]) {
@@ -82,17 +82,26 @@ bool get_val=false;
 int get_idx=0;
 char get_names[11] = "";
 char get_vals[11] = "";
+const char modifiedSince[] = "If-Modified-Since:"; bool modifiedSince_found; byte modifiedSince_count;
 
 // variables to support web-page request detection
 const char index_page[] = "GET /index.htm"; bool index_page_found; byte index_page_count;
+#ifdef SD_CARD_ON
+const char chart_js_page[] = "GET /Chart.min.js"; bool chart_js_page_found; byte chart_js_page_count;
+#endif
 /* add additional web-pages per the above line(s) here */
 
 void reset_page_requests() {
   index_page_found=false; index_page_count=0;
+#ifdef SD_CARD_ON
+  chart_js_page_found=false; chart_js_page_count=0;
+#endif
 /* add additional web-pages per the above line(s) here */
 
+  modifiedSince_found=false;
   get_check=false; get_val=false; get_name=false;
 }
+
 
 void Ethernet_www() {
   // if a client doesn't already exist try to find a new one
@@ -101,10 +110,9 @@ void Ethernet_www() {
   // active client?
   if (www_client) {
     if (www_client.connected()) {
-      if (www_client.available()) {
+      if (www_client.available() && (!responseStarted)) {
         char c = www_client.read();
-
-        //Serial_char(c);
+//        Serial.print(c);
 
         // record the get request name and value, then process the request
         if ((get_val) && ((c==' ') || (c=='&'))) { get_val=false; get_idx=0; Ethernet_get(); if (c=='&') { c='?'; get_check=true; } }
@@ -115,7 +123,13 @@ void Ethernet_www() {
         
         // watch for page requests and flag them
         if (!index_page_found)    { if (c==index_page[index_page_count])       index_page_count++;    else index_page_count=0;    if (index_page_count==14)    { index_page_found=true; get_check=true; } }
+#ifdef SD_CARD_ON
+        if (!chart_js_page_found) { if (c==chart_js_page[chart_js_page_count]) chart_js_page_count++; else chart_js_page_count=0; if (chart_js_page_count==17) { chart_js_page_found=true; get_check=true; } }
+#endif
 /* add additional web-pages per the above line(s) here */
+
+        // watch for cache requests
+        if (!modifiedSince_found) { if (c==modifiedSince[modifiedSince_count]) modifiedSince_count++; else modifiedSince_count=0; if (modifiedSince_count==18) { modifiedSince_found=true; } }
         
         // if you've gotten to the end of the line (received a newline character) and the line is blank, the http request has ended, so you can send a reply
         if ((c == '\n') && currentLineIsBlank) { 
@@ -134,6 +148,9 @@ void Ethernet_www() {
       // any data ready to send gets processed here
       if (responseStarted) {
         if (index_page_found) index_html_page(); else
+#ifdef SD_CARD_ON
+        if (chart_js_page_found) chart_js_html_page(); else
+#endif
 /* add additional web-pages per the above line(s) here */
 
         index_html_page();
@@ -155,7 +172,9 @@ void Ethernet_www() {
       clientNeedsToClose=false;
       www_client.stop();
     }
+#ifdef ETHERNET_USE_DHCP_ON
     Ethernet.maintain();
+#endif
   }
 }
 
@@ -226,11 +245,15 @@ void Ethernet_get() {
 const char html_header1[] PROGMEM = "HTTP/1.1 200 OK\r\n";
 const char html_header2[] PROGMEM = "Content-Type: text/html\r\n";
 const char html_header3[] PROGMEM = "Connection: close\r\n";
-const char html_header4[] PROGMEM = "Refresh: 5\r\n\r\n";
+const char html_header4[] PROGMEM = "Refresh: 10\r\n\r\n";
 const char html_header4a[] PROGMEM = "\r\n";
 const char html_header5[] PROGMEM = "<!DOCTYPE HTML>\r\n<html>\r\n";
+#ifdef SD_CARD_ON
+const char html_header6[] PROGMEM = "<head><script src=\"/Chart.min.js\"></script>\r\n";
+#else
 //const char html_header6[] PROGMEM = "<head><script src=\"https://cdnjs.com/libraries/chart.js\"></script>\r\n";
 const char html_header6[] PROGMEM = "<head><script src=\"http://www.chartjs.org/assets/Chart.min.js\"></script>\r\n";
+#endif
 //const char html_header6[] PROGMEM = "<head>\r\n";
 const char html_header7[] PROGMEM = "</head>\r\n";
 const char html_header8[] PROGMEM = "<body bgcolor=\"#26262A\">\r\n";
@@ -519,5 +542,62 @@ if (html_page_step==++stp) {
   // send the data
   if (!www_write(temp)) html_page_step--; // repeat this step if www_write failed
 }
+
+#ifdef SD_CARD_ON
+const char html_header1j[] PROGMEM = "HTTP/1.1 200 OK\r\n";
+const char html_header2j[] PROGMEM = "Date: Thu, 25 Feb 2016 17:00:49 GMT\r\n";
+const char html_header3j[] PROGMEM = "Etag: \"3457807a63ac7bdabf8999b98245d0fe\"\r\n";
+const char html_header4j[] PROGMEM = "Last-Modified: Mon, 13 Apr 2015 15:35:56 GMT\r\n";
+const char html_header5j[] PROGMEM = "Content-Type: Content-Type: application/javascript\r\n";
+const char html_header6j[] PROGMEM = "Connection: close\r\n\r\n";
+
+const char html_header1k[] PROGMEM = "HTTP/1.1 304 OK\r\n";
+const char html_header4k[] PROGMEM = "Last-Modified: Mon, 13 Apr 2015 15:35:56 GMT\r\n";
+const char html_header6k[] PROGMEM = "Connection: close\r\n\r\n";
+// Send the "Chart.min.js" javascript from the sdcard ----------------------------------------------------------------------------
+// 
+File dataFile;
+bool fileOpen = false;
+void chart_js_html_page() {
+  char temp[256] = "";
+
+  if (!fileOpen) {
+    // open the sdcard file
+    if (sdReady) {
+
+      dataFile = SD.open("Chart.js", FILE_READ);
+      if (dataFile) fileOpen=true; else fileOpen=false;
+    } else exit;
+
+    if (modifiedSince_found) {
+      // send the 304 header
+      strcpy_P(temp, html_header1k); www_client.print(temp);
+      strcpy_P(temp, html_header4k); www_client.print(temp);
+      strcpy_P(temp, html_header6k); www_client.print(temp);
+      dataFile.close(); fileOpen=false;
+      modifiedSince_found=false;
+    } else {
+      // send the header
+      strcpy_P(temp, html_header1j); www_client.print(temp);
+      strcpy_P(temp, html_header2j); www_client.print(temp);
+      strcpy_P(temp, html_header3j); www_client.print(temp);
+      strcpy_P(temp, html_header4j); www_client.print(temp);
+      strcpy_P(temp, html_header5j); www_client.print(temp);
+      strcpy_P(temp, html_header6j); www_client.print(temp);
+    }
+  } else {
+     int n = dataFile.available();
+     if (n > 256) n = 256;
+     dataFile.read(temp, n);
+     www_client.write(temp, n);
+                    
+    // end of file?
+    if (n==0) { dataFile.close(); fileOpen=false; }
+  }
+
+  // stop sending this page
+  if (!fileOpen) { responseStarted=false; return; }
+}
+#endif
 
 #endif
