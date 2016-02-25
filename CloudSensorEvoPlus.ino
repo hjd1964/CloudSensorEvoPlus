@@ -1,22 +1,26 @@
 /**
-  This sketch reads three sensors:
-   DS18B20 - Connected to D9
-   MLX90614, and optionally BMP180 and/or HTU21D - Connected to SCL and SDA (A4 and A5 on an UNO, pins 21 and 20 on a Mega2560)
-   Rain sensor conected to A0
+  This sketch reads up to five sensors:
+  DS18B20 - Connected to D9
+  MLX90614, and optionally BMP180 and/or HTU21D - Connected to SCL and SDA (A4 and A5 on an UNO, pins 21 and 20 on a Mega2560)
+  Rain sensor conected to A0
 
-   and supports the Arduino Ethernet Shield (WIZnet W5100)
+  and supports the Arduino Ethernet Shield (WIZnet W5100 and SD CARD)
 
-  It calculates the temperatures (DS18B20 and MLX90614)
+  It detects the presence of clouds, rain, the ambient temperature, humidity, and barometric pressure
   DS18B20: http://playground.arduino.cc/Learning/OneWire
   MLX90614: http://bildr.org/2011/02/mlx90614-arduino/
+  BMP180: https://learn.sparkfun.com/tutorials/bmp180-barometric-pressure-sensor-hookup-?_ga=1.90764189.629045862.1424710986
+  HTU21D: https://learn.sparkfun.com/tutorials/htu21d-humidity-sensor-hookup-guide?_ga=1.90764189.629045862.1424710986
 */
 
 // --------------------------------------------------------------------------------------------------------------
 #define FirmwareName "CloudSensorEvoPlus"
-#define FirmwareNumber "0.23"
+#define FirmwareNumber "0.30"
 
-#include <Wire.h>
 #include "Config.h"
+#include <SPI.h>
+#include <SD.h>
+#include <Wire.h>
 #include "EEPROM.h"
 #ifdef DS18B20_ON
 //get it here: http://www.pjrc.com/teensy/td_libs_OneWire.html
@@ -42,6 +46,18 @@ float ds18b20_celsius = invalid;
 float MLX90614_celsius = invalid;
 float delta_celsius = invalid;
 float avg_delta_celsius = 0;
+
+// etc.
+bool sdReady = false;
+byte TimeSeconds = 0;
+long last = 0;
+int log_pos = 0;
+byte log_count = 0;
+
+float sa=0.0;
+float ss=0.0;
+float sad=0.0;
+float lad=0.0;
 
 #ifdef MLX90614_ON
 //get it here: https://learn.adafruit.com/using-melexis-mlx90614-non-contact-sensors/wiring-and-test
@@ -88,65 +104,26 @@ void setup(void)
   Ethernet_Init();
 #endif
 
+#ifdef SD_CARD_ON
+  sdReady=SD.begin(4);
+#else
+  // disable the SDCARD if not using
+  pinMode(4,OUTPUT);
+  digitalWrite(4,HIGH);
+#endif
+
   randomSeed(analogRead(0));
 
   //  Serial.println("Init. Done.");
 }
-
-void init_HTU21D()
-{
-  //  Serial.println("Initializing HTU21D sensor...");
-#ifdef HTU21D_ON
-  humidity.begin();
-  valid_HTU21D=true;
-#endif
-}
-
-void init_BMP180()
-{
-  //  Serial.println("Initializing BMP180 sensor...");
-#ifdef BMP180_ON
-  valid_BMP180=pressure.begin();
-#endif
-}
-
-void init_DS18B20()
-{
-  //  Serial.println("Initializing DS18B20 sensor...");
-#ifdef DS18B20_ON
-  while ( !ds.search(ds18b20_addr))
-  {
-    ds.reset_search();
-    delay(250);
-  }
-#endif
-}
-
-void init_MLX90614()
-{
-  //  Serial.println("Initializing MLX90614 sensor...");
-#ifdef MLX90614_ON
-    mlx.begin();
-#endif
-  //  PORTC = (1 << PORTC4) | (1 << PORTC5);//enable pullups if you use 5V sensors and don't have external pullups in the circuit
-}
-
-byte TimeSeconds = 0;
-long last = 0;
-int log_pos = 0;
-byte log_count = 0;
-
-float sa=0.0;
-float ss=0.0;
-float sad=0.0;
-float lad=0.0;
 
 void loop(void)
 {
   long now = millis();
 
   // gather data from sensors once every two seconds
-  if ((now-last)>2000L) {
+     
+   if ((now-last)>2000L) {
 //        Serial.print(".");
     last = now; // time of last call
 
@@ -202,7 +179,7 @@ void loop(void)
 
     // Logging ------------------------------------------------------------------
     // two minutes between writing values
-#if defined(MLX90614_OFF) && defined(DS18B20_OFF)
+#if defined(MLX90614_ON) && defined(DS18B20_ON)
     if (TimeSeconds%SecondsBetweenLogEntries==0) { // x seconds
 #else
     if (TimeSeconds%4==0) { // 4 seconds
@@ -232,6 +209,44 @@ void loop(void)
   }
 
   processCommands();
+}
+
+void init_HTU21D()
+{
+  //  Serial.println("Initializing HTU21D sensor...");
+#ifdef HTU21D_ON
+  humidity.begin();
+  valid_HTU21D=true;
+#endif
+}
+
+void init_BMP180()
+{
+  //  Serial.println("Initializing BMP180 sensor...");
+#ifdef BMP180_ON
+  valid_BMP180=pressure.begin();
+#endif
+}
+
+void init_DS18B20()
+{
+  //  Serial.println("Initializing DS18B20 sensor...");
+#ifdef DS18B20_ON
+  while ( !ds.search(ds18b20_addr))
+  {
+    ds.reset_search();
+    delay(250);
+  }
+#endif
+}
+
+void init_MLX90614()
+{
+  //  Serial.println("Initializing MLX90614 sensor...");
+#ifdef MLX90614_ON
+    mlx.begin();
+#endif
+  //  PORTC = (1 << PORTC4) | (1 << PORTC5);//enable pullups if you use 5V sensors and don't have external pullups in the circuit
 }
 
 #ifdef DS18B20_ON
