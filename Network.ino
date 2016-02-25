@@ -82,7 +82,9 @@ bool get_val=false;
 int get_idx=0;
 char get_names[11] = "";
 char get_vals[11] = "";
+#ifdef SD_CARD_ON
 const char modifiedSince[] = "If-Modified-Since:"; bool modifiedSince_found; byte modifiedSince_count;
+#endif
 
 // variables to support web-page request detection
 const char index_page[] = "GET /index.htm"; bool index_page_found; byte index_page_count;
@@ -98,7 +100,9 @@ void reset_page_requests() {
 #endif
 /* add additional web-pages per the above line(s) here */
 
+#ifdef SD_CARD_ON
   modifiedSince_found=false;
+#endif
   get_check=false; get_val=false; get_name=false;
 }
 
@@ -128,8 +132,10 @@ void Ethernet_www() {
 #endif
 /* add additional web-pages per the above line(s) here */
 
+#ifdef SD_CARD_ON
         // watch for cache requests
         if (!modifiedSince_found) { if (c==modifiedSince[modifiedSince_count]) modifiedSince_count++; else modifiedSince_count=0; if (modifiedSince_count==18) { modifiedSince_found=true; } }
+#endif
         
         // if you've gotten to the end of the line (received a newline character) and the line is blank, the http request has ended, so you can send a reply
         if ((c == '\n') && currentLineIsBlank) { 
