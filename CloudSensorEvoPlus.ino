@@ -19,7 +19,9 @@
 
 #include "Config.h"
 #include <SPI.h>
+#ifdef SD_CARD_ON
 #include <SD.h>
+#endif
 #include <Wire.h>
 #include "EEPROM.h"
 #ifdef DS18B20_ON
