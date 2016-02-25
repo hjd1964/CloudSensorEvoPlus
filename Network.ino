@@ -405,7 +405,7 @@ void index_html_page() {
     strcpy_P(temp1, html_index3); sprintf(temp,temp1,temp2);
   }
   if (html_page_step==++stp) { 
-    dtostrf(MLX90614_celsius,3,1,temp2);
+    dtostrf(sky_celsius,3,1,temp2);
     strcpy_P(temp1, html_index4); sprintf(temp,temp1,temp2,temp3);
   }
   if (html_page_step==++stp) { 

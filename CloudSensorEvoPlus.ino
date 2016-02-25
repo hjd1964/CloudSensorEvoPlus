@@ -46,7 +46,7 @@ float rainSensorReading2 = invalid;
 
 // last cloud sensor reading
 float ambient_celsius = invalid;
-float MLX90614_celsius = invalid;
+float sky_celsius = invalid;
 float delta_celsius = invalid;
 float avg_delta_celsius = 0;
 
@@ -147,22 +147,21 @@ void loop(void)
     if (valid_HTU21D) ambient_celsius = read_HTU21Dtemp(); else ambient_celsius=invalid;
 #else
     ambient_celsius=random(20,25);    //ground
-    MLX90614_celsius=random(-1,10);   //sky
 #endif
 #ifdef MLX90614_ON
-    MLX90614_celsius = read_MLX90614();
+    sky_celsius = read_MLX90614();
 #else
-    MLX90614_celsius=random(-1,10);  //sky
+    sky_celsius=random(-1,10);        //sky
 #endif
-    delta_celsius = abs(ambient_celsius - MLX90614_celsius);
+    delta_celsius = abs(ambient_celsius - sky_celsius);
     avg_delta_celsius = ((avg_delta_celsius*(AvgTimeSeconds/2.0-1.0)) + delta_celsius)/(AvgTimeSeconds/2.0);
     
     // short-term average ambient temp
-    sa = ((sa*((double)SecondsBetweenLogEntries/2.0-1.0)) + ambient_celsius)/((double)SecondsBetweenLogEntries/2.0);
+    sa  = (( sa*((double)SecondsBetweenLogEntries/2.0-1.0))+ ambient_celsius)/((double)SecondsBetweenLogEntries/2.0);
     // short-term sky temp
-    ss = ((ss*((double)SecondsBetweenLogEntries/2.0-1.0)) + MLX90614_celsius)/((double)SecondsBetweenLogEntries/2.0);
+    ss  = (( ss*((double)SecondsBetweenLogEntries/2.0-1.0))+     sky_celsius)/((double)SecondsBetweenLogEntries/2.0);
     // short-term average diff temp
-    sad = ((sad*((double)SecondsBetweenLogEntries/2.0-1.0)) + delta_celsius)/((double)SecondsBetweenLogEntries/2.0);
+    sad = ((sad*((double)SecondsBetweenLogEntries/2.0-1.0))+   delta_celsius)/((double)SecondsBetweenLogEntries/2.0);
     // long-term average diff temp
     lad=avg_delta_celsius;
     // End cloud sensor
@@ -218,7 +217,7 @@ void loop(void)
       log_count++; if (log_count>64) log_count==64;
 
       sa=ambient_celsius;
-      ss=MLX90614_celsius;
+      ss=sky_celsius;
       sad=delta_celsius;
     }
   }

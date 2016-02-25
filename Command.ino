@@ -81,7 +81,7 @@ void processCommands() {
 //  :G2#  Get MLX90614 Temperature
 //         Returns: nnn.n#
         if (command[1]=='2') {
-          dtostrf(MLX90614_celsius,3,1,reply);
+          dtostrf(sky_celsius,3,1,reply);
           quietReply=true;
         } else
 //  :G3#  Get delta Temperature
