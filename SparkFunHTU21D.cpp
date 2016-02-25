@@ -221,3 +221,4 @@ byte HTU21D::check_crc(uint16_t message_from_sensor, uint8_t check_value_from_se
 
   return (byte)remainder;
 }
+

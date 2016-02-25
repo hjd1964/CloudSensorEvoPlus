@@ -75,7 +75,7 @@ void processCommands() {
 //  :G1#  Get DS18B20 Temperature
 //         Returns: nnn.n#
         if (command[1]=='1') {
-          dtostrf(ds18b20_celsius,3,1,reply);
+          dtostrf(ambient_celsius,3,1,reply);
           quietReply=true;
         } else
 //  :G2#  Get MLX90614 Temperature
@@ -272,4 +272,5 @@ boolean clearCommand_ethernet() {
   return true;
 }
 #endif
+
 

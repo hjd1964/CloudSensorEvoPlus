@@ -15,7 +15,7 @@
 
 // --------------------------------------------------------------------------------------------------------------
 #define FirmwareName "CloudSensorEvoPlus"
-#define FirmwareNumber "0.30"
+#define FirmwareNumber "0.31"
 
 #include "Config.h"
 #include <SPI.h>
@@ -34,6 +34,7 @@
 #define CHKSUM0_OFF
 boolean valid_BMP180 = false;
 boolean valid_HTU21D = false;
+boolean valid_DHT22 = false;
 
 // last humidity sensor reading
 float pressureSensorReading = invalid;
@@ -44,7 +45,7 @@ int rainSensorReading = invalid;
 float rainSensorReading2 = invalid;
 
 // last cloud sensor reading
-float ds18b20_celsius = invalid;
+float ambient_celsius = invalid;
 float MLX90614_celsius = invalid;
 float delta_celsius = invalid;
 float avg_delta_celsius = 0;
@@ -80,6 +81,13 @@ SFE_BMP180 pressure;
 #ifdef HTU21D_ON
 #include "SparkFunHTU21D.h"
 HTU21D humidity;
+#endif
+
+#ifdef DHT22_ON
+#include "DHT.h"
+#define DHTPIN 2     // what digital pin we're connected to
+#define DHTTYPE DHT22
+DHT dht(DHTPIN, DHTTYPE);
 #endif
 
 void setup(void)
@@ -132,9 +140,13 @@ void loop(void)
     // Cloud sensor ------------------------------------------------------------
     // it might be a good idea to add some error checking and force the values to invalid if something is wrong
 #ifdef DS18B20_ON
-    ds18b20_celsius = read_DS18B20();
+    ambient_celsius = read_DS18B20();
+#elif defined(DHT22_ON)
+    if (valid_DHT22) ambient_celsius = read_DHT22temp(); else ambient_celsius=invalid;
+#elif defined(HTU21D_ON)
+    if (valid_HTU21D) ambient_celsius = read_HTU21Dtemp(); else ambient_celsius=invalid;
 #else
-    ds18b20_celsius=random(20,25);    //ground
+    ambient_celsius=random(20,25);    //ground
     MLX90614_celsius=random(-1,10);   //sky
 #endif
 #ifdef MLX90614_ON
@@ -142,11 +154,11 @@ void loop(void)
 #else
     MLX90614_celsius=random(-1,10);  //sky
 #endif
-    delta_celsius = abs(ds18b20_celsius - MLX90614_celsius);
+    delta_celsius = abs(ambient_celsius - MLX90614_celsius);
     avg_delta_celsius = ((avg_delta_celsius*(AvgTimeSeconds/2.0-1.0)) + delta_celsius)/(AvgTimeSeconds/2.0);
     
     // short-term average ambient temp
-    sa = ((sa*((double)SecondsBetweenLogEntries/2.0-1.0)) + ds18b20_celsius)/((double)SecondsBetweenLogEntries/2.0);
+    sa = ((sa*((double)SecondsBetweenLogEntries/2.0-1.0)) + ambient_celsius)/((double)SecondsBetweenLogEntries/2.0);
     // short-term sky temp
     ss = ((ss*((double)SecondsBetweenLogEntries/2.0-1.0)) + MLX90614_celsius)/((double)SecondsBetweenLogEntries/2.0);
     // short-term average diff temp
@@ -177,8 +189,9 @@ void loop(void)
     // Humidity ----------------------------------------------------------------
 #ifdef HTU21D_ON
   if (valid_HTU21D) humiditySensorReading = read_HTU21D(); else humiditySensorReading=invalid;
+#elif defined(DHT22_ON)
+  if (valid_DHT22) humiditySensorReading = read_DHT22(); else humiditySensorReading=invalid;
 #endif
-
     // Logging ------------------------------------------------------------------
     // two minutes between writing values
 #if defined(MLX90614_ON) && defined(DS18B20_ON)
@@ -204,7 +217,7 @@ void loop(void)
       
       log_count++; if (log_count>64) log_count==64;
 
-      sa=ds18b20_celsius;
+      sa=ambient_celsius;
       ss=MLX90614_celsius;
       sad=delta_celsius;
     }
@@ -334,6 +347,22 @@ float read_HTU21D()
   float f=humidity.readHumidity();
   if (f>=997) return invalid; else return f;
 }
+float read_HTU21Dtemp()
+{
+  float f=humidity.readTemperature();
+  if (f>=997) return invalid; else return f;
+}
+#endif
+
+#ifdef DHT22_ON
+float read_DHT22()
+{ float f=dht.readHumidity();   
+  if (isnan(f)) return invalid; else return f; //Check if any reads failed
+  }
+float read_DHT22temp()
+{ float f=dht.readTemperature();   
+  if (isnan(f)) return invalid; else return f; //Check if any reads failed
+  }
 #endif
 
 #ifdef BMP180_ON
@@ -414,3 +443,4 @@ float read_BMP180()
   else return invalid;
 }
 #endif
+

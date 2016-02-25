@@ -401,7 +401,7 @@ void index_html_page() {
   if (html_page_step==++stp) strcpy_P(temp, html_links2);
   if (html_page_step==++stp) strcpy_P(temp, html_index2b);
   if (html_page_step==++stp) { 
-    dtostrf(ds18b20_celsius,3,1,temp2);
+    dtostrf(ambient_celsius,3,1,temp2);
     strcpy_P(temp1, html_index3); sprintf(temp,temp1,temp2);
   }
   if (html_page_step==++stp) { 
@@ -607,3 +607,4 @@ void chart_js_html_page() {
 #endif
 
 #endif
+
