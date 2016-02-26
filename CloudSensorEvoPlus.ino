@@ -214,7 +214,7 @@ void loop(void)
       log_pos+=4;
       if (log_pos>=1024) log_pos-=1024;
       
-      log_count++; if (log_count>64) log_count==64;
+      log_count++; if (log_count>64) log_count=64;
 
       sa=ambient_celsius;
       ss=sky_celsius;
