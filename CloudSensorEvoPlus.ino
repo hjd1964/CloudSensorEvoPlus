@@ -193,7 +193,7 @@ void loop(void)
 #endif
     // Logging ------------------------------------------------------------------
     // two minutes between writing values
-#if defined(MLX90614_ON) && defined(DS18B20_ON)
+#if defined(MLX90614_ON) && (defined(DS18B20_ON) || defined(DHT22_ON) || defined(HTU21D_ON))
     if (TimeSeconds%SecondsBetweenLogEntries==0) { // x seconds
 #else
     if (TimeSeconds%4==0) { // 4 seconds
