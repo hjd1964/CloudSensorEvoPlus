@@ -106,6 +106,7 @@ void setup(void)
 
   init_BMP180();
   init_HTU21D();
+  init_DHT22();
   init_DS18B20();
   init_MLX90614();
 
@@ -231,6 +232,15 @@ void init_HTU21D()
 #ifdef HTU21D_ON
   humidity.begin();
   valid_HTU21D=true;
+#endif
+}
+
+void init_DHT22()
+{
+    //Serial.println("Initializing DHT22 sensor...");
+#ifdef DHT22_ON
+  dht.begin();
+  valid_DHT22=true;
 #endif
 }
 
