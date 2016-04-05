@@ -4,13 +4,13 @@
 // SENSORS
 
 // the MLX90614, HTU21D, and BMP180 I2C sensors are at the default I2C pins SDA SCL
-#define MLX90614_ON    // simulated if _OFF (IR "sky" temperature)
+#define MLX90614_OFF  // simulated if _OFF (IR "sky" temperature)
 // the DS18B20 temperature sensor is on Digital 9 and is accessed using OneWire.h
-#define DS18B20_ON     // simulated if _OFF and no alternate (ambient temperature)
-#define HTU21D_OFF     // disabled if _OFF (humidity, alternate to DS1820 for ambient temperature)
-#define DHT22_OFF      // disabled if _OFF (humidity, alternate to DS1820 for ambient temperature)
-#define BMP180_OFF     // disabled if _OFF (barometric pressure)
-
+#define DS18B20_OFF   // simulated if _OFF and no alternate (ambient temperature)
+#define HTU21D_OFF    // disabled if _OFF (humidity, alternate to DS1820 for ambient temperature)
+#define DHT22_OFF     // disabled if _OFF (humidity, alternate to DS1820 for ambient temperature)
+#define BMP180_OFF    // disabled if _OFF (barometric pressure)
+                         
 // Using this option the built-in pullup resistors should be turned off immediately *after* the library connects,
 // if you don't like this situation use a level-converter.  This hasn't been tested and is coded to work only on
 // the Mega328 and Mega2560
@@ -38,18 +38,25 @@
 #define WetThreshold 0.2
 #define CloudThreshold 16.0
 
-#define PlotAvgDeltaTemp_ON // _ON plots the averaged temperature difference, _OFF plots the temperature difference, default=_ON
-
 // Adjust the log resolution here, must be in 2's 2,4,6,8...120,122
 // keep in mind that EEPROM is spec'd to last for 100,000 writes
 // since a given location gets written to once in 64 readings that amounts to
 // a write of a given location once every 2 hours (64 * 120 seconds) * 100,000 which is 22 years
 // at 60 it's 11 years, at 30 5 years life.  These are minimums according to the spec.
-#define SecondsBetweenLogEntries 30
+#define SecondsBetweenLogEntries 120
 
 // this is the response time required to cover approximately 2/3 of a change in cloud temperature
 // adjust higher for less sensitivity to passing clouds/changing conditions, lower for more sensitivity
 #define AvgTimeSeconds 600.0
+
+// ------------------------------------------------------------------------------------------------------------------
+// HEATER
+
+// _ON uses pin 3 to N-Channel MOSFET gate for driving a small 12v heater
+#define HEATER_OFF
+#define MinPower   5    // % minimum power
+#define HeaterLow -10.0 // temp. deg. C for 100% power
+#define HeaterHigh 25.0 // temp. deg. C for minimum power
 
 // ------------------------------------------------------------------------------------------------------------------
 // NETWORK
@@ -58,6 +65,8 @@
 #define W5100_OFF
 // if DHCP is used to obtain the IP addresses, the addresses are overridden, default=_OFF
 #define ETHERNET_USE_DHCP_OFF
+// _ON plots the averaged temperature difference, _OFF plots the temperature difference, default=_ON
+#define PlotAvgDeltaTemp_ON
 // Enable chart of readings
 #define HTML_CHART_ON
 // Enable serving "Chart.js" from an SD Card, default=_OFF

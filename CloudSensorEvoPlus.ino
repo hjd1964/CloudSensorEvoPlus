@@ -15,7 +15,7 @@
 
 // --------------------------------------------------------------------------------------------------------------
 #define FirmwareName "CloudSensorEvoPlus"
-#define FirmwareNumber "0.31"
+#define FirmwareNumber "0.5"
 
 #include "Config.h"
 #include <SPI.h>
@@ -36,15 +36,21 @@ boolean valid_BMP180 = false;
 boolean valid_HTU21D = false;
 boolean valid_DHT22 = false;
 
-// last humidity sensor reading
-float pressureSensorReading = invalid;
+// humidity sensor reading
 float humiditySensorReading = invalid;
 
-// last rain sensor reading
+// pressure sensor reading
+float pressureSensorReading = invalid;
+float lastPressureHistReading = invalid;
+float pressureDelta = 0;
+long timeLastPressureHistReading = 0;
+
+// rain sensor reading
 int rainSensorReading = invalid;
 float rainSensorReading2 = invalid;
+int heaterPower = 0;
 
-// last cloud sensor reading
+// cloud sensor reading
 float ambient_celsius = invalid;
 float sky_celsius = invalid;
 float delta_celsius = invalid;
@@ -110,11 +116,15 @@ void setup(void)
   init_DS18B20();
   init_MLX90614();
 
+#ifdef HEATER_ON
+  pinMode(3,OUTPUT);
+#endif
+
 #if defined(W5100_ON)
   // get ready for Ethernet communications
   Ethernet_Init();
 #endif
-
+ 
 #ifdef SD_CARD_ON
   sdReady=SD.begin(4);
 #else
@@ -123,37 +133,105 @@ void setup(void)
   digitalWrite(4,HIGH);
 #endif
 
+#if !defined(MLX90614_ON) || (!defined(HTU21D_ON) && !defined(DHT22_ON) && !defined(DS18B20_ON))
   randomSeed(analogRead(0));
+#endif
 
-  //  Serial.println("Init. Done.");
+// _OFF (Default) sets A0 as the analog input for the rain sensor
+// _ON for the analog board pins +5,gnd,D0,A0 plugging directly into A0,A1,A2,A3 (I removed the LED's to lower current draw)
+#define YL83_ALTERNATE_PINS_ON  
+
+#ifdef YL83_ALTERNATE_PINS_ON
+  pinMode(14,OUTPUT);
+  digitalWrite(14,HIGH);
+  pinMode(15,OUTPUT);
+  digitalWrite(15,LOW);
+#endif
+
+// get the initial pressure reading
+#ifdef BMP180_ON
+  lastPressureHistReading=read_BMP180();
+#endif
+//  Serial.println("Init. Done.");
 }
 
 void loop(void)
 {
-  long now = millis();
-
   // gather data from sensors once every two seconds
      
-   if ((now-last)>2000L) {
+   if ((millis()-last)>2000L) {
 //        Serial.print(".");
-    last = now; // time of last call
+    last = millis(); // time of last call
 
-    // Cloud sensor ------------------------------------------------------------
-    // it might be a good idea to add some error checking and force the values to invalid if something is wrong
+    // Ambient temperature -----------------------------------------------------
+    int ac;
 #ifdef DS18B20_ON
-    ambient_celsius = read_DS18B20();
+    ac=read_DS18B20();
+    ambient_celsius = (float)ac/16.0;
 #elif defined(DHT22_ON)
     if (valid_DHT22) ambient_celsius = read_DHT22temp(); else ambient_celsius=invalid;
+    ac=ambient_celsius*16.0;
 #elif defined(HTU21D_ON)
     if (valid_HTU21D) ambient_celsius = read_HTU21Dtemp(); else ambient_celsius=invalid;
+    ac=ambient_celsius*16.0;
 #else
-    ambient_celsius=random(20,25);    //ground
+    ambient_celsius=random(20,25); // ground
 #endif
+
+#ifdef HEATER_ON
+    // Heater ------------------------------------------------------------------
+    heaterPower=(((ac+(-(long)(HeaterHigh*16.0)))*(255L+1L))/((long)(HeaterLow*16.0)-((long)(HeaterHigh*16.0))));
+    if (ac==invalid) heaterPower=0; 
+    if (heaterPower<(int)((MinPower/100.0)*255.0)) heaterPower=(int)((MinPower/100.0)*255.0);
+    if (heaterPower>255) heaterPower=255;
+    analogWrite(3,heaterPower);
+    heaterPower=heaterPower/3+heaterPower/17;
+#endif
+
+    // Cloud sensor ------------------------------------------------------------
 #ifdef MLX90614_ON
     sky_celsius = read_MLX90614();
 #else
-    sky_celsius=random(-1,10);        //sky
+    sky_celsius=random(-1,10); // sky
+    analogWrite(3,0);
 #endif
+
+    // Rain sensor -------------------------------------------------------------
+    // it might be a good idea to add some error checking and force the values to invalid if something is wrong
+#ifdef YL83_ALTERNATE_PINS_ON
+    // read the sensor on analog A3:
+    int sensorReading = analogRead(A3);
+#else
+    // read the sensor on analog A0:
+    int sensorReading = analogRead(A0);
+#endif
+    // map the sensor range (four options):
+    // ex: 'long int map(long int, long int, long int, long int, long int)'
+    rainSensorReading=(((sensorReading+(-(int)RainSensorMin))*(2+1))/((int)RainSensorMax-((int)RainSensorMin)));
+    rainSensorReading2 = (float)sensorReading / 1023.0;
+
+    // Pressure ----------------------------------------------------------------
+#ifdef BMP180_ON
+  if (valid_BMP180) { 
+    pressureSensorReading = read_BMP180();
+  } else pressureSensorReading=invalid;
+  if ((millis()-timeLastPressureHistReading>1000L*60L*60L)) {
+    timeLastPressureHistReading=millis();
+    pressureDelta=(pressureSensorReading-lastPressureHistReading);
+    lastPressureHistReading=pressureSensorReading;
+  }
+#endif
+
+    // Humidity ----------------------------------------------------------------
+#ifdef HTU21D_ON
+  if (valid_HTU21D) humiditySensorReading = read_HTU21D(); else humiditySensorReading=invalid;
+#elif defined(DHT22_ON)
+  if (valid_DHT22) humiditySensorReading = read_DHT22(); else humiditySensorReading=invalid;
+#endif
+
+    // Logging ------------------------------------------------------------------
+    TimeSeconds+=2;
+
     delta_celsius = abs(ambient_celsius - sky_celsius);
     avg_delta_celsius = ((avg_delta_celsius*(AvgTimeSeconds/2.0-1.0)) + delta_celsius)/(AvgTimeSeconds/2.0);
     
@@ -165,34 +243,7 @@ void loop(void)
     sad = ((sad*((double)SecondsBetweenLogEntries/2.0-1.0))+   delta_celsius)/((double)SecondsBetweenLogEntries/2.0);
     // long-term average diff temp
     lad=avg_delta_celsius;
-    // End cloud sensor
 
-    // Rain sensor -------------------------------------------------------------
-    // it might be a good idea to add some error checking and force the values to invalid if something is wrong
-    // read the sensor on analog A0:
-    int sensorReading = analogRead(A0);
-
-    // map the sensor range (four options):
-    // ex: 'long int map(long int, long int, long int, long int, long int)'
-    rainSensorReading = map(sensorReading, RainSensorMin, RainSensorMax, 0, 3);
-    rainSensorReading2 = (float)sensorReading / 1023.0;
-    // End rain sensor
-
-    TimeSeconds+=2;
-//    Serial.println(log_pos);
-
-    // Pressure ----------------------------------------------------------------
-#ifdef BMP180_ON
-  if (valid_BMP180) pressureSensorReading = read_BMP180(); else pressureSensorReading=invalid;
-#endif
-
-    // Humidity ----------------------------------------------------------------
-#ifdef HTU21D_ON
-  if (valid_HTU21D) humiditySensorReading = read_HTU21D(); else humiditySensorReading=invalid;
-#elif defined(DHT22_ON)
-  if (valid_DHT22) humiditySensorReading = read_DHT22(); else humiditySensorReading=invalid;
-#endif
-    // Logging ------------------------------------------------------------------
     // two minutes between writing values
 #if defined(MLX90614_ON) && (defined(DS18B20_ON) || defined(DHT22_ON) || defined(HTU21D_ON))
     if (TimeSeconds%SecondsBetweenLogEntries==0) { // x seconds
@@ -274,14 +325,12 @@ void init_MLX90614()
 }
 
 #ifdef DS18B20_ON
-float read_DS18B20()
+int read_DS18B20()
 {
   byte i;
   byte present = 0;
   byte type_s;
   byte data[12];
-
-  float celsius;
 
   if (OneWire::crc8(ds18b20_addr, 7) != ds18b20_addr[7])
   {
@@ -337,9 +386,9 @@ float read_DS18B20()
     else if (cfg == 0x40) raw = raw & ~1; // 11 bit res, 375 ms
     //// default is 12 bit resolution, 750 ms conversion time
   }
-  celsius = (float)raw / 16.0;
-
-  return celsius;
+//  float celsius = (float)raw / 16.0;
+//  return celsius;
+  return raw;
 }
 #endif
 

@@ -362,14 +362,12 @@ double SFE_BMP180::sealevel(double P, double A)
 	return(P/pow(1-(A/44330.0),5.255));
 }
 
-
 double SFE_BMP180::altitude(double P, double P0)
 // Given a pressure measurement P (mb) and the pressure at a baseline P0 (mb),
 // return altitude (meters) above baseline.
 {
 	return(44330.0*(1-pow(P/P0,1/5.255)));
 }
-
 
 char SFE_BMP180::getError(void)
 	// If any library command fails, you can retrieve an extended

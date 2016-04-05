@@ -46,8 +46,6 @@ void processCommands() {
 
     if (process_command) {
 
-          
-
 // Command is two chars followed by an optional parameter...
       commandError=false;
       quietReply=false;
