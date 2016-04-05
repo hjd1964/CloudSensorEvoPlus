@@ -139,7 +139,7 @@ void setup(void)
 
 // _OFF (Default) sets A0 as the analog input for the rain sensor
 // _ON for the analog board pins +5,gnd,D0,A0 plugging directly into A0,A1,A2,A3 (I removed the LED's to lower current draw)
-#define YL83_ALTERNATE_PINS_ON  
+#define YL83_ALTERNATE_PINS_OFF
 
 #ifdef YL83_ALTERNATE_PINS_ON
   pinMode(14,OUTPUT);
